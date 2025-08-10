@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Chat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #4a90e2, #1e3a8a);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        h2, h3 {
+            margin-bottom: 1.5rem;
+        }
+        .logout-btn {
+            display: inline-block;
+            margin-top: 1rem;
+            color: #93c5fd;
+            text-decoration: none;
+        }
+        .logout-btn:hover {
+            text-decoration: underline;
+        }
+        #user-list {
+            list-style: none;
+            margin-top: 1rem;
+        }
+        #user-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 0.5rem 0;
+            border-radius: 5px;
+            transition: transform 0.3s ease;
+        }
+        #user-list li:hover {
+            transform: scale(1.02);
+        }
+        .call-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+        .call-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: #fff;
+            transition: transform 0.3s ease;
+        }
+        .call-btn:hover svg {
+            transform: scale(1.2);
+        }
+        .call-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 1rem;
+            border-radius: 5px;
+            animation: slideIn 0.3s ease;
+        }
+        .call-notification.hidden {
+            display: none;
+        }
+        .call-notification button {
+            margin: 0 0.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            background: #2563eb;
+            color: #fff;
+            cursor: pointer;
+        }
+        .call-notification button:hover {
+            background: #1d4ed8;
+        }
+        .video-call {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+        }
+        .video-call.hidden {
+            display: none;
+        }
+        video {
+            width: 45%;
+            max-width: 500px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>¡Bienvenido, {{ username }}!</h2>
+        <a href="{{ url_for('logout') }}" class="logout-btn">Cerrar Sesión</a>
+        <h3>Usuarios Conectados</h3>
+        <ul id="user-list"></ul>
+        <div id="call-notification" class="call-notification hidden">
+            <p>Llamada entrante de <span id="caller-name"></span></p>
+            <button id="accept-call">Aceptar</button>
+            <button id="reject-call">Rechazar</button>
+        </div>
+        <div id="video-call" class="video-call hidden">
+            <video id="local-video" autoplay muted></video>
+            <video id="remote-video" autoplay></video>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        const userList = document.getElementById('user-list');
+        const callNotification = document.getElementById('call-notification');
+        const callerName = document.getElementById('caller-name');
+        const acceptCallBtn = document.getElementById('accept-call');
+        const rejectCallBtn = document.getElementById('reject-call');
+        const videoCall = document.getElementById('video-call');
+        const localVideo = document.getElementById('local-video');
+        const remoteVideo = document.getElementById('remote-video');
+
+        let localStream;
+        let peerConnection;
+        const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+        socket.on('update_users', (users) => {
+            userList.innerHTML = '';
+            users.forEach(user => {
+                if (user !== '{{ username }}') {
+                    const li = document.createElement('li');
+                    li.textContent = user;
+                    const callBtn = document.createElement('button');
+                    callBtn.className = 'call-btn';
+                    callBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>`;
+                    callBtn.onclick = () => startCall(user);
+                    li.appendChild(callBtn);
+                    userList.appendChild(li);
+                }
+            });
+        });
+
+        socket.on('incoming_call', (data) => {
+            callerName.textContent = data.caller;
+            callNotification.classList.remove('hidden');
+        });
+
+        acceptCallBtn.onclick = () => {
+            callNotification.classList.add('hidden');
+            socket.emit('accept_call', { caller: callerName.textContent });
+            startVideoCall();
+        };
+
+        rejectCallBtn.onclick = () => {
+            callNotification.classList.add('hidden');
+            socket.emit('reject_call', { caller: callerName.textContent });
+        };
+
+        socket.on('call_accepted', (data) => {
+            startVideoCall(data.room);
+        });
+
+        socket.on('call_rejected', () => {
+            alert('Llamada rechazada');
+        });
+
+        socket.on('webrtc_signal', (data) => {
+            if (data.offer) {
+                peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                peerConnection.createAnswer().then(answer => {
+                    peerConnection.setLocalDescription(answer);
+                    socket.emit('webrtc_signal', { answer, room: data.room });
+                });
+            } else if (data.answer) {
+                peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+            } else if (data.candidate) {
+                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+        });
+
+        async function startCall(targetUser) {
+            socket.emit('start_call', { target_user: targetUser });
+        }
+
+        async function startVideoCall(room) {
+            videoCall.classList.remove('hidden');
+            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            localVideo.srcObject = localStream;
+
+            peerConnection = new RTCPeerConnection(configuration);
+            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+            peerConnection.ontrack = (event) => {
+                remoteVideo.srcObject = event.streams[0];
+            };
+
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    socket.emit('webrtc_signal', { candidate: event.candidate, room });
+                }
+            };
+
+            if (!room) {
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                socket.emit('webrtc_signal', { offer, room: `${'{{ username }}'}_${targetUser}` });
+            }
+        }
+    </script>
+</body>
+</html>
