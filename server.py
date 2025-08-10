@@ -20,7 +20,8 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS users (
                  id INTEGER PRIMARY KEY AUTOINCREMENT,
                  username TEXT UNIQUE NOT NULL,
-                 password TEXT NOT NULL
+                 password TEXT NOT NULL,
+                 avatar TEXT  -- Campo para almacenar la ruta del avatar (opcional)
                  )''')
     conn.commit()
     conn.close()
@@ -38,15 +39,15 @@ def index():
 
 @app.route('/auth', methods=['GET', 'POST'])
 def auth():
-    # Obtener el modo desde la query string (e.g., /auth?mode=login)
-    mode = request.args.get('mode', 'login')  # Por defecto, login
+    mode = request.args.get('mode', 'login')
     if mode not in ['login', 'register']:
-        mode = 'login'  # Validación para evitar modos inválidos
+        mode = 'login'
 
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
         action = request.form['action']
+        avatar = request.form.get('avatar', 'default-avatar.png')  # Simulación de avatar
         conn = sqlite3.connect('database.db')
         c = conn.cursor()
         if action == 'login':
@@ -60,8 +61,8 @@ def auth():
             return render_template('auth.html', error='Credenciales inválidas', mode='login')
         elif action == 'register':
             try:
-                c.execute("INSERT INTO users (username, password) VALUES (?, ?)",
-                         (username, generate_password_hash(password)))
+                c.execute("INSERT INTO users (username, password, avatar) VALUES (?, ?, ?)",
+                         (username, generate_password_hash(password), avatar))
                 conn.commit()
                 session['username'] = username
                 conn.close()
@@ -94,20 +95,27 @@ def handle_disconnect():
 @socketio.on('start_call')
 def handle_start_call(data):
     target_user = data['target_user']
+    call_type = data['call_type']  # 'video' o 'audio'
     caller = session['username']
-    emit('incoming_call', {'caller': caller}, to=target_user)
+    emit('incoming_call', {'caller': caller, 'call_type': call_type}, to=target_user)
 
 @socketio.on('accept_call')
 def handle_accept_call(data):
     caller = data['caller']
+    call_type = data['call_type']
     target_user = session['username']
     room = f"{caller}_{target_user}"
-    emit('call_accepted', {'room': room}, to=caller)
+    emit('call_accepted', {'room': room, 'call_type': call_type}, to=caller)
 
 @socketio.on('reject_call')
 def handle_reject_call(data):
     caller = data['caller']
     emit('call_rejected', to=caller)
+
+@socketio.on('end_call')
+def handle_end_call(data):
+    room = data['room']
+    emit('call_ended', room=room)
 
 @socketio.on('webrtc_signal')
 def handle_webrtc_signal(data):
