@@ -33,11 +33,16 @@ online_users = set()
 @app.route('/')
 def index():
     if 'username' not in session:
-        return redirect(url_for('auth'))
+        return redirect(url_for('auth', mode='login'))
     return render_template('index.html', username=session['username'])
 
 @app.route('/auth', methods=['GET', 'POST'])
 def auth():
+    # Obtener el modo desde la query string (e.g., /auth?mode=login)
+    mode = request.args.get('mode', 'login')  # Por defecto, login
+    if mode not in ['login', 'register']:
+        mode = 'login'  # Validación para evitar modos inválidos
+
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
@@ -64,7 +69,7 @@ def auth():
             except sqlite3.IntegrityError:
                 conn.close()
                 return render_template('auth.html', error='Usuario ya existe', mode='register')
-    return render_template('auth.html', mode='login')
+    return render_template('auth.html', mode=mode)
 
 @app.route('/logout')
 def logout():
@@ -72,7 +77,7 @@ def logout():
     if username:
         online_users.discard(username)
         socketio.emit('update_users', list(online_users))
-    return redirect(url_for('auth'))
+    return redirect(url_for('auth', mode='login'))
 
 @socketio.on('connect')
 def handle_connect():
