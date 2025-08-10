@@ -1,0 +1,6 @@
+flask
+flask-socketio
+werkzeug
+gevent
+gevent-websocket
+python-socketio
