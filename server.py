@@ -1,100 +1,73 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
-from datetime import datetime
+import time
 from gevent import monkey
 import uuid
 
-# Configuración inicial
 monkey.patch_all()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'tu-clave-secreta-aqui')
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret-key')
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 
 socketio = SocketIO(app, async_mode='gevent', cors_allowed_origins="*")
 
-# Helpers
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
-
+# Database setup
 def get_db_connection():
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
     return conn
 
-# Inicialización de la base de datos
 def init_db():
     with get_db_connection() as conn:
         conn.execute('''CREATE TABLE IF NOT EXISTS users (
                      id INTEGER PRIMARY KEY AUTOINCREMENT,
                      username TEXT UNIQUE NOT NULL,
                      password TEXT NOT NULL,
-                     avatar TEXT,
                      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                      )''')
         conn.commit()
 
 init_db()
 
-# Usuarios conectados y llamadas activas
+# Global variables
 online_users = set()
 active_calls = {}
 
-# Rutas principales
+# Routes
 @app.route('/')
 def index():
     if 'username' not in session:
         return redirect(url_for('auth', mode='login'))
-    
-    with get_db_connection() as conn:
-        user = conn.execute('SELECT * FROM users WHERE username = ?', (session['username'],)).fetchone()
-    
     return render_template('index.html', username=session['username'])
 
 @app.route('/auth', methods=['GET', 'POST'])
 def auth():
     mode = request.args.get('mode', 'login')
-    if mode not in ['login', 'register']:
-        mode = 'login'
-
+    
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password']
-        action = request.form['action']
         
         with get_db_connection() as conn:
-            if action == 'login':
+            if request.form['action'] == 'login':
                 user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
                 if user and check_password_hash(user['password'], password):
                     session['username'] = username
                     return redirect(url_for('index'))
-                return render_template('auth.html', error='Usuario o contraseña incorrectos', mode='login')
+                return render_template('auth.html', error='Credenciales inválidas', mode='login')
             
-            elif action == 'register':
-                # Verificar si el usuario ya existe
+            elif request.form['action'] == 'register':
                 existing_user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
                 if existing_user:
-                    return render_template('auth.html', error='El nombre de usuario ya está en uso', mode='register')
+                    return render_template('auth.html', error='Usuario ya existe', mode='register')
                 
-                # Manejar el avatar
-                avatar_filename = 'default-avatar.png'
-                if 'avatar' in request.files and request.files['avatar'].filename:
-                    file = request.files['avatar']
-                    if file and allowed_file(file.filename):
-                        ext = file.filename.rsplit('.', 1)[1].lower()
-                        avatar_filename = f"{uuid.uuid4().hex}.{ext}"
-                        file.save(os.path.join(app.config['UPLOAD_FOLDER'], avatar_filename))
-                
-                # Crear nuevo usuario
-                conn.execute('INSERT INTO users (username, password, avatar) VALUES (?, ?, ?)',
-                           (username, generate_password_hash(password), avatar_filename))
+                conn.execute('INSERT INTO users (username, password) VALUES (?, ?)',
+                            (username, generate_password_hash(password)))
                 conn.commit()
-                
                 session['username'] = username
                 return redirect(url_for('index'))
     
@@ -105,90 +78,135 @@ def logout():
     username = session.pop('username', None)
     if username in online_users:
         online_users.remove(username)
-        emit('update_users', list(online_users), broadcast=True, namespace='/')
+        emit('update_users', list(online_users), broadcast=True)
     
-    # Terminar cualquier llamada activa
-    for room, users in active_calls.items():
-        if username in users:
-            emit('call_ended', room=room)
-            del active_calls[room]
-            break
+    # End all active calls for this user
+    for room_id, call_data in list(active_calls.items()):
+        if username in [call_data['caller'], call_data['callee']]:
+            emit('call_ended', {'room_id': room_id}, room=room_id)
+            del active_calls[room_id]
     
     return redirect(url_for('auth', mode='login'))
 
-# WebSocket events
+# Socket.IO Events
 @socketio.on('connect')
 def handle_connect():
     if 'username' in session:
         username = session['username']
         if username not in online_users:
             online_users.add(username)
-            emit('update_users', list(online_users), broadcast=True, namespace='/')
+            emit('update_users', list(online_users), broadcast=True)
 
 @socketio.on('disconnect')
 def handle_disconnect():
     if 'username' in session and session['username'] in online_users:
         username = session['username']
         online_users.remove(username)
-        emit('update_users', list(online_users), broadcast=True, namespace='/')
+        emit('update_users', list(online_users), broadcast=True)
         
-        # Terminar llamadas si el usuario se desconecta
-        for room, users in active_calls.items():
-            if username in users:
-                emit('call_ended', room=room)
-                del active_calls[room]
-                break
+        # End all active calls for this user
+        for room_id, call_data in list(active_calls.items()):
+            if username in [call_data['caller'], call_data['callee']]:
+                emit('call_ended', {'room_id': room_id}, room=room_id)
+                del active_calls[room_id]
 
 @socketio.on('start_call')
 def handle_start_call(data):
     caller = session['username']
     target_user = data['target_user']
     call_type = data['call_type']
+    room_id = f"call_{caller}_{target_user}_{int(time.time())}"
     
     if target_user in online_users:
-        room = f"{caller}_{target_user}"
-        active_calls[room] = [caller, target_user]
-        emit('incoming_call', {'caller': caller, 'call_type': call_type}, room=target_user)
+        active_calls[room_id] = {
+            'caller': caller,
+            'callee': target_user,
+            'type': call_type,
+            'status': 'ringing'
+        }
+        
+        emit('incoming_call', {
+            'caller': caller,
+            'call_type': call_type,
+            'room_id': room_id
+        }, room=target_user)
+        
+        emit('call_initiated', {
+            'room_id': room_id,
+            'target_user': target_user
+        }, room=caller)
     else:
-        emit('call_rejected', room=caller)
+        emit('call_failed', {
+            'reason': 'El usuario no está disponible',
+            'target_user': target_user
+        }, room=caller)
 
 @socketio.on('accept_call')
 def handle_accept_call(data):
-    caller = data['caller']
-    call_type = data['call_type']
-    target_user = session['username']
-    room = f"{caller}_{target_user}"
+    room_id = data['room_id']
+    callee = session['username']
     
-    join_room(room)
-    emit('join_room', {'room': room}, room=caller)
-    
-    emit('call_accepted', {'room': room, 'call_type': call_type}, room=caller)
+    if room_id in active_calls and active_calls[room_id]['callee'] == callee:
+        active_calls[room_id]['status'] = 'accepted'
+        join_room(room_id)
+        emit('join_room', {'room_id': room_id}, room=active_calls[room_id]['caller'])
+        
+        emit('call_accepted', {
+            'room_id': room_id,
+            'callee': callee,
+            'call_type': active_calls[room_id]['type']
+        }, room=active_calls[room_id]['caller'])
+    else:
+        emit('call_ended', {
+            'reason': 'La llamada ya no está disponible',
+            'room_id': room_id
+        }, room=callee)
 
 @socketio.on('reject_call')
 def handle_reject_call(data):
-    caller = data['caller']
-    emit('call_rejected', room=caller)
+    room_id = data.get('room_id')
+    if room_id in active_calls:
+        emit('call_rejected', {
+            'room_id': room_id,
+            'caller': active_calls[room_id]['caller'],
+            'reason': 'Llamada rechazada'
+        }, room=active_calls[room_id]['caller'])
+        
+        emit('call_ended', {
+            'reason': 'Llamada rechazada',
+            'room_id': room_id
+        }, room=active_calls[room_id]['callee'])
+        
+        del active_calls[room_id]
 
 @socketio.on('end_call')
 def handle_end_call(data):
-    room = data['room']
-    emit('call_ended', room=room)
-    if room in active_calls:
-        del active_calls[room]
+    room_id = data['room_id']
+    if room_id in active_calls:
+        emit('call_ended', {
+            'room_id': room_id,
+            'reason': 'Llamada finalizada'
+        }, room=room_id)
+        
+        if room_id in active_calls:
+            del active_calls[room_id]
 
 @socketio.on('join_room')
 def handle_join_room(data):
-    join_room(data['room'])
+    join_room(data['room_id'])
 
 @socketio.on('webrtc_signal')
 def handle_webrtc_signal(data):
-    room = data['room']
-    emit('webrtc_signal', data, room=room)
+    room_id = data['room_id']
+    target = data.get('target')
+    
+    # Reenviar señal al destinatario específico o a toda la sala
+    if target:
+        emit('webrtc_signal', data, room=target)
+    else:
+        emit('webrtc_signal', data, room=room_id)
 
 if __name__ == '__main__':
-    # Crear directorio de uploads si no existe
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
-    
-    port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
