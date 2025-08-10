@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VideoChat WebRTC</title>
+    <title>VideoChat</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -164,7 +164,7 @@
             background: var(--success);
         }
 
-        /* Notificación de llamada */
+        /* Notificaci�n de llamada */
         .call-notification {
             position: fixed;
             top: 20px;
@@ -540,7 +540,6 @@
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' }
-                // Agregar servidores TURN si es necesario
             ] 
         };
 
@@ -699,7 +698,7 @@
             };
             
             // Crear oferta si somos el iniciador
-            if (!callScreen.classList.contains('hidden') {
+            if (!callScreen.classList.contains('hidden')) {
                 createOffer(callType);
             }
         }
