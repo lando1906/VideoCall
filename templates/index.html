@@ -3,175 +3,508 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Chat</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <title>VideoChat WebRTC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a0ca3;
+            --danger: #f72585;
+            --success: #4cc9f0;
+            --dark: #212529;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Poppins', sans-serif;
         }
+
         body {
-            background: linear-gradient(135deg, #4a90e2, #1e3a8a);
-            color: #fff;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: var(--light);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 20px;
         }
+
         .container {
             background: rgba(255, 255, 255, 0.1);
             padding: 2rem;
-            border-radius: 10px;
+            border-radius: 16px;
             backdrop-filter: blur(10px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             text-align: center;
-            animation: fadeIn 0.5s ease-in-out;
+            animation: fadeIn 0.5s ease-out;
         }
-        h2, h3 {
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 1.5rem;
         }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--success);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: var(--dark);
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
         .logout-btn {
-            display: inline-block;
-            margin-top: 1rem;
-            color: #93c5fd;
-            text-decoration: none;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: var(--light);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
+
         .logout-btn:hover {
-            text-decoration: underline;
+            background: rgba(255, 255, 255, 0.2);
         }
+
+        h3 {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
         #user-list {
             list-style: none;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 8px;
         }
+
+        #user-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #user-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
         #user-list li {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.8rem;
+            padding: 12px 16px;
             background: rgba(255, 255, 255, 0.1);
             margin: 0.5rem 0;
-            border-radius: 5px;
-            transition: transform 0.3s ease;
+            border-radius: 12px;
+            transition: all 0.3s ease;
         }
+
         #user-list li:hover {
-            transform: scale(1.02);
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
         }
-        .call-btn, .audio-btn {
-            background: none;
+
+        .user-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
             border: none;
+            color: var(--light);
             cursor: pointer;
-            margin-left: 0.5rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .call-btn svg, .audio-btn svg {
-            width: 24px;
-            height: 24px;
-            fill: #fff;
-            transition: transform 0.3s ease;
+
+        .action-btn:hover {
+            background: var(--success);
+            transform: scale(1.1);
         }
-        .call-btn:hover svg, .audio-btn:hover svg {
-            transform: scale(1.2);
+
+        .action-btn.video {
+            background: var(--primary);
         }
+
+        .action-btn.audio {
+            background: var(--success);
+        }
+
+        /* Notificación de llamada */
         .call-notification {
             position: fixed;
             top: 20px;
             right: 20px;
             background: rgba(0, 0, 0, 0.8);
-            padding: 1rem;
-            border-radius: 5px;
-            animation: slideIn 0.3s ease;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 300px;
         }
+
         .call-notification.hidden {
             display: none;
         }
-        .call-notification button {
-            margin: 0 0.5rem;
-            padding: 0.5rem 1rem;
+
+        .call-notification p {
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+        }
+
+        .notification-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .notification-btn {
+            padding: 8px 16px;
             border: none;
-            border-radius: 5px;
-            background: #2563eb;
-            color: #fff;
+            border-radius: 20px;
+            font-weight: 500;
             cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        .call-notification button:hover {
-            background: #1d4ed8;
+
+        .notification-btn.accept {
+            background: var(--success);
+            color: var(--dark);
         }
-        .video-call {
+
+        .notification-btn.reject {
+            background: var(--danger);
+            color: white;
+        }
+
+        .notification-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Pantalla de llamada */
+        .call-screen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: var(--dark);
+            z-index: 999;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             gap: 1rem;
+            padding: 20px;
         }
-        .video-call.hidden {
+
+        .call-screen.hidden {
             display: none;
         }
-        video {
-            width: 45%;
-            max-width: 500px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+
+        .call-header {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
         }
-        #call-status {
-            font-size: 1.2rem;
-            margin-bottom: 1rem;
+
+        .call-type-badge {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        #call-timer {
+
+        .call-type-badge i {
+            font-size: 0.9rem;
+        }
+
+        .call-timer {
             font-size: 1rem;
-            margin-bottom: 1rem;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 6px 12px;
+            border-radius: 20px;
         }
-        #end-call-btn {
-            padding: 0.8rem 1.5rem;
-            background: #ff4d4d;
+
+        .video-container {
+            width: 100%;
+            height: calc(100% - 100px);
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #remote-video, #remote-audio {
+            width: 100%;
+            height: 100%;
+            max-width: 800px;
+            max-height: 600px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: var(--gray);
+        }
+
+        #remote-audio {
+            display: none;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .audio-visualizer {
+            width: 200px;
+            height: 100px;
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+
+        .visualizer-bar {
+            width: 8px;
+            background: white;
+            border-radius: 4px;
+            animation: visualizer 1.5s infinite ease-in-out;
+        }
+
+        @keyframes visualizer {
+            0%, 100% { height: 20%; }
+            50% { height: 80%; }
+        }
+
+        #local-video {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 25%;
+            max-width: 200px;
+            border-radius: 8px;
+            border: 2px solid white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+
+        .call-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .control-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
             border: none;
-            border-radius: 5px;
-            color: #fff;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
             cursor: pointer;
-            transition: background 0.3s ease;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
-        #end-call-btn:hover {
-            background: #cc0000;
+
+        .control-btn:hover {
+            transform: translateY(-5px) scale(1.1);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
         }
+
+        .control-btn.active {
+            background: white;
+            color: var(--primary);
+        }
+
+        .control-btn.danger {
+            background: var(--danger);
+        }
+
+        .control-btn i {
+            pointer-events: none;
+        }
+
+        .call-status {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            z-index: 10;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
         @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem;
+                max-width: 100%;
+            }
+
+            #local-video {
+                width: 30%;
+                max-width: 150px;
+            }
+
+            .control-btn {
+                width: 48px;
+                height: 48px;
+                font-size: 1rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>¡Bienvenido, {{ username }}!</h2>
-        <a href="{{ url_for('logout') }}" class="logout-btn">Cerrar Sesión</a>
+        <div class="header">
+            <div class="user-info">
+                <div class="avatar">{{ username|first|upper }}</div>
+                <h2>Hola, {{ username }}</h2>
+            </div>
+            <button class="logout-btn" onclick="location.href='{{ url_for('logout') }}'">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Salir</span>
+            </button>
+        </div>
+
         <h3>Usuarios Conectados</h3>
         <ul id="user-list"></ul>
+
+        <!-- Notificación de llamada -->
         <div id="call-notification" class="call-notification hidden">
-            <p>Llamada <span id="call-type"></span> entrante de <span id="caller-name"></span></p>
-            <button id="accept-call">Aceptar</button>
-            <button id="reject-call">Rechazar</button>
+            <p><i class="fas fa-phone-alt"></i> Llamada <span id="call-type"></span> de <strong id="caller-name"></strong></p>
+            <div class="notification-buttons">
+                <button id="accept-call" class="notification-btn accept">
+                    <i class="fas fa-phone"></i>
+                    <span>Aceptar</span>
+                </button>
+                <button id="reject-call" class="notification-btn reject">
+                    <i class="fas fa-phone-slash"></i>
+                    <span>Rechazar</span>
+                </button>
+            </div>
         </div>
-        <div id="video-call" class="video-call hidden">
-            <p id="call-status">Conectando...</p>
-            <p id="call-timer">00:00</p>
-            <video id="local-video" autoplay muted></video>
-            <video id="remote-video" autoplay></video>
-            <button id="end-call-btn">Colgar</button>
+
+        <!-- Pantalla de llamada -->
+        <div id="call-screen" class="call-screen hidden">
+            <div class="call-header">
+                <div id="call-type-badge" class="call-type-badge">
+                    <i class="fas fa-video"></i>
+                    <span>Llamada de video</span>
+                </div>
+                <div id="call-timer" class="call-timer">00:00</div>
+            </div>
+
+            <div class="video-container">
+                <video id="remote-video" autoplay playsinline></video>
+                <div id="remote-audio" class="hidden">
+                    <div class="audio-visualizer">
+                        <div class="visualizer-bar" style="animation-delay: 0s"></div>
+                        <div class="visualizer-bar" style="animation-delay: 0.2s"></div>
+                        <div class="visualizer-bar" style="animation-delay: 0.4s"></div>
+                        <div class="visualizer-bar" style="animation-delay: 0.6s"></div>
+                        <div class="visualizer-bar" style="animation-delay: 0.8s"></div>
+                    </div>
+                    <h3 id="remote-user-name">Usuario Remoto</h3>
+                </div>
+                <video id="local-video" autoplay playsinline muted></video>
+                <div id="call-status" class="call-status">Conectando...</div>
+            </div>
+
+            <div class="call-controls">
+                <button id="mute-btn" class="control-btn" title="Silenciar">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <button id="video-toggle" class="control-btn" title="Apagar video">
+                    <i class="fas fa-video"></i>
+                </button>
+                <button id="end-call-btn" class="control-btn danger" title="Finalizar llamada">
+                    <i class="fas fa-phone-slash"></i>
+                </button>
+            </div>
         </div>
     </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
     <script>
+        // Configuración inicial
         const socket = io();
         const userList = document.getElementById('user-list');
         const callNotification = document.getElementById('call-notification');
@@ -179,19 +512,39 @@
         const callType = document.getElementById('call-type');
         const acceptCallBtn = document.getElementById('accept-call');
         const rejectCallBtn = document.getElementById('reject-call');
-        const videoCall = document.getElementById('video-call');
+        const callScreen = document.getElementById('call-screen');
         const localVideo = document.getElementById('local-video');
         const remoteVideo = document.getElementById('remote-video');
+        const remoteAudio = document.getElementById('remote-audio');
+        const remoteUserName = document.getElementById('remote-user-name');
         const callStatus = document.getElementById('call-status');
         const callTimer = document.getElementById('call-timer');
         const endCallBtn = document.getElementById('end-call-btn');
+        const muteBtn = document.getElementById('mute-btn');
+        const videoToggle = document.getElementById('video-toggle');
+        const callTypeBadge = document.getElementById('call-type-badge');
 
+        // Variables de estado
         let localStream;
         let peerConnection;
         let callStartTime;
         let timerInterval;
-        const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+        let currentRoom;
+        let currentCallType;
+        let isMuted = false;
+        let isVideoOff = false;
 
+        // Configuración WebRTC
+        const configuration = { 
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' }
+                // Agregar servidores TURN si es necesario
+            ] 
+        };
+
+        // Funciones de utilidad
         function startTimer() {
             callStartTime = Date.now();
             timerInterval = setInterval(() => {
@@ -207,37 +560,202 @@
             callTimer.textContent = '00:00';
         }
 
+        function updateCallTypeUI(type) {
+            currentCallType = type;
+            const icon = type === 'video' ? 'fa-video' : 'fa-phone-alt';
+            const text = type === 'video' ? 'Llamada de video' : 'Llamada de audio';
+            
+            callTypeBadge.innerHTML = `<i class="fas ${icon}"></i><span>${text}</span>`;
+            
+            if (type === 'audio') {
+                remoteVideo.classList.add('hidden');
+                remoteAudio.classList.remove('hidden');
+                remoteUserName.textContent = callerName.textContent;
+            } else {
+                remoteVideo.classList.remove('hidden');
+                remoteAudio.classList.add('hidden');
+            }
+        }
+
+        function toggleMute() {
+            if (!localStream) return;
+            
+            const audioTracks = localStream.getAudioTracks();
+            if (audioTracks.length > 0) {
+                isMuted = !audioTracks[0].enabled;
+                audioTracks[0].enabled = !isMuted;
+                
+                muteBtn.classList.toggle('active', isMuted);
+                muteBtn.innerHTML = isMuted ? '<i class="fas fa-microphone-slash"></i>' : '<i class="fas fa-microphone"></i>';
+            }
+        }
+
+        function toggleVideo() {
+            if (!localStream) return;
+            
+            const videoTracks = localStream.getVideoTracks();
+            if (videoTracks.length > 0) {
+                isVideoOff = !videoTracks[0].enabled;
+                videoTracks[0].enabled = !isVideoOff;
+                
+                videoToggle.classList.toggle('active', isVideoOff);
+                videoToggle.innerHTML = isVideoOff ? '<i class="fas fa-video-slash"></i>' : '<i class="fas fa-video"></i>';
+                
+                if (isVideoOff) {
+                    localVideo.style.opacity = '0.5';
+                } else {
+                    localVideo.style.opacity = '1';
+                }
+            }
+        }
+
+        // Funciones principales
         function endCall() {
             if (peerConnection) {
                 peerConnection.close();
                 peerConnection = null;
             }
+            
             if (localStream) {
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = null;
             }
-            videoCall.classList.add('hidden');
+            
+            callScreen.classList.add('hidden');
             callStatus.textContent = 'Conectando...';
             stopTimer();
-            socket.emit('end_call', { room: currentRoom });
+            
+            if (currentRoom) {
+                socket.emit('end_call', { room: currentRoom });
+                currentRoom = null;
+            }
+            
+            // Resetear controles
+            muteBtn.classList.remove('active');
+            videoToggle.classList.remove('active');
+            isMuted = false;
+            isVideoOff = false;
         }
 
+        async function startCall(targetUser, callType) {
+            currentRoom = `{{ username }}_${targetUser}`;
+            socket.emit('start_call', { target_user: targetUser, call_type: callType });
+            
+            callStatus.textContent = `Llamando a ${targetUser}...`;
+            callScreen.classList.remove('hidden');
+            updateCallTypeUI(callType);
+            
+            try {
+                const constraints = callType === 'video' ? 
+                    { video: true, audio: true } : 
+                    { video: false, audio: true };
+                
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                localVideo.srcObject = localStream;
+                
+                setupPeerConnection(callType);
+            } catch (error) {
+                console.error('Error al iniciar la llamada:', error);
+                endCall();
+                alert('No se pudo acceder a los dispositivos multimedia. Por favor, verifica los permisos.');
+            }
+        }
+
+        function setupPeerConnection(callType) {
+            peerConnection = new RTCPeerConnection(configuration);
+            
+            // Agregar tracks locales
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+            
+            // Manejar tracks remotos
+            peerConnection.ontrack = (event) => {
+                if (callType === 'video') {
+                    remoteVideo.srcObject = event.streams[0];
+                } else {
+                    // Para audio, podríamos analizar el stream para el visualizador
+                }
+                callStatus.textContent = 'En llamada';
+                startTimer();
+            };
+            
+            // Manejar candidatos ICE
+            peerConnection.onicecandidate = (event) => {
+                if (event.candidate && currentRoom) {
+                    socket.emit('webrtc_signal', { 
+                        candidate: event.candidate, 
+                        room: currentRoom 
+                    });
+                }
+            };
+            
+            // Manejar cambios de estado
+            peerConnection.oniceconnectionstatechange = () => {
+                if (peerConnection.iceConnectionState === 'failed') {
+                    callStatus.textContent = 'Conexión fallida';
+                    setTimeout(endCall, 2000);
+                }
+            };
+            
+            // Crear oferta si somos el iniciador
+            if (!callScreen.classList.contains('hidden') {
+                createOffer(callType);
+            }
+        }
+
+        async function createOffer(callType) {
+            try {
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                socket.emit('webrtc_signal', { 
+                    offer, 
+                    room: currentRoom,
+                    call_type: callType
+                });
+            } catch (error) {
+                console.error('Error al crear la oferta:', error);
+                endCall();
+            }
+        }
+
+        async function handleRemoteOffer(offer, callType) {
+            try {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                
+                socket.emit('webrtc_signal', { 
+                    answer, 
+                    room: currentRoom 
+                });
+                
+                updateCallTypeUI(callType);
+            } catch (error) {
+                console.error('Error al manejar la oferta remota:', error);
+                endCall();
+            }
+        }
+
+        // Eventos de Socket.IO
         socket.on('update_users', (users) => {
             userList.innerHTML = '';
             users.forEach(user => {
                 if (user !== '{{ username }}') {
                     const li = document.createElement('li');
-                    li.textContent = user;
-                    const videoBtn = document.createElement('button');
-                    videoBtn.className = 'call-btn';
-                    videoBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>`;
-                    videoBtn.onclick = () => startCall(user, 'video');
-                    const audioBtn = document.createElement('button');
-                    audioBtn.className = 'audio-btn';
-                    audioBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
-                    audioBtn.onclick = () => startCall(user, 'audio');
-                    li.appendChild(videoBtn);
-                    li.appendChild(audioBtn);
+                    li.innerHTML = `
+                        <span>${user}</span>
+                        <div class="user-actions">
+                            <button class="action-btn video" onclick="startCall('${user}', 'video')" title="Llamada de video">
+                                <i class="fas fa-video"></i>
+                            </button>
+                            <button class="action-btn audio" onclick="startCall('${user}', 'audio')" title="Llamada de audio">
+                                <i class="fas fa-phone-alt"></i>
+                            </button>
+                        </div>
+                    `;
                     userList.appendChild(li);
                 }
             });
@@ -249,88 +767,89 @@
             callNotification.classList.remove('hidden');
         });
 
-        acceptCallBtn.onclick = () => {
+        socket.on('call_accepted', async (data) => {
             callNotification.classList.add('hidden');
-            socket.emit('accept_call', { caller: callerName.textContent, call_type: callType.textContent.includes('video') ? 'video' : 'audio' });
-            startVideoCall(null, callType.textContent.includes('video') ? 'video' : 'audio');
-        };
-
-        rejectCallBtn.onclick = () => {
-            callNotification.classList.add('hidden');
-            socket.emit('reject_call', { caller: callerName.textContent });
-        };
-
-        socket.on('call_accepted', (data) => {
-            startVideoCall(data.room, data.call_type);
+            currentRoom = data.room;
+            
+            callStatus.textContent = 'Conectando...';
+            callScreen.classList.remove('hidden');
+            updateCallTypeUI(data.call_type);
+            
+            try {
+                const constraints = data.call_type === 'video' ? 
+                    { video: true, audio: true } : 
+                    { video: false, audio: true };
+                
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                localVideo.srcObject = localStream;
+                
+                setupPeerConnection(data.call_type);
+            } catch (error) {
+                console.error('Error al aceptar la llamada:', error);
+                endCall();
+            }
         });
 
         socket.on('call_rejected', () => {
-            alert('Llamada rechazada');
+            callNotification.classList.add('hidden');
+            alert(`${callerName.textContent} ha rechazado tu llamada`);
             endCall();
         });
 
         socket.on('call_ended', () => {
-            endCall();
+            callStatus.textContent = 'Llamada finalizada';
+            setTimeout(endCall, 1500);
         });
 
-        socket.on('webrtc_signal', (data) => {
-            if (data.offer) {
-                peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-                peerConnection.createAnswer().then(answer => {
-                    peerConnection.setLocalDescription(answer);
-                    socket.emit('webrtc_signal', { answer, room: data.room });
-                });
-            } else if (data.answer) {
-                peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-            } else if (data.candidate) {
-                peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-            }
-        });
-
-        let currentRoom;
-        async function startCall(targetUser, callType) {
-            currentRoom = `{{ username }}_${targetUser}`;
-            socket.emit('start_call', { target_user: targetUser, call_type: callType });
-            callStatus.textContent = 'Llamando...';
-            startVideoCall(null, callType);
-        }
-
-        async function startVideoCall(room, callType) {
-            videoCall.classList.remove('hidden');
-            callStatus.textContent = 'Conectando...';
-            const constraints = callType === 'video' ? { video: true, audio: true } : { video: false, audio: true };
+        socket.on('webrtc_signal', async (data) => {
+            if (!peerConnection) return;
+            
             try {
-                localStream = await navigator.mediaDevices.getUserMedia(constraints);
-                localVideo.srcObject = callType === 'video' ? localStream : null;
-                peerConnection = new RTCPeerConnection(configuration);
-                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-                peerConnection.ontrack = (event) => {
-                    remoteVideo.srcObject = callType === 'video' ? event.streams[0] : null;
-                    callStatus.textContent = 'En llamada';
-                    startTimer();
-                };
-                peerConnection.onicecandidate = (event) => {
-                    if (event.candidate) {
-                        socket.emit('webrtc_signal', { candidate: event.candidate, room: room || currentRoom });
-                    }
-                };
-                if (!room) {
-                    const offer = await peerConnection.createOffer();
-                    await peerConnection.setLocalDescription(offer);
-                    socket.emit('webrtc_signal', { offer, room: currentRoom });
-                } else {
-                    currentRoom = room;
+                if (data.offer) {
+                    await handleRemoteOffer(data.offer, data.call_type);
+                } else if (data.answer) {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                } else if (data.candidate) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
                 }
             } catch (error) {
-                console.error('Error iniciando llamada:', error);
-                endCall();
-                alert('Error al iniciar la llamada. Verifica los permisos de cámara/micrófono.');
+                console.error('Error al procesar señal WebRTC:', error);
             }
-        }
+        });
 
-        endCallBtn.onclick = () => {
-            endCall();
-        };
+        // Event listeners
+        acceptCallBtn.addEventListener('click', () => {
+            callNotification.classList.add('hidden');
+            socket.emit('accept_call', { 
+                caller: callerName.textContent, 
+                call_type: callType.textContent.includes('video') ? 'video' : 'audio' 
+            });
+        });
+
+        rejectCallBtn.addEventListener('click', () => {
+            callNotification.classList.add('hidden');
+            socket.emit('reject_call', { caller: callerName.textContent });
+        });
+
+        endCallBtn.addEventListener('click', endCall);
+        muteBtn.addEventListener('click', toggleMute);
+        videoToggle.addEventListener('click', toggleVideo);
+
+        // Inicialización
+        document.addEventListener('DOMContentLoaded', () => {
+            // Verificar permisos de medios
+            navigator.permissions.query({ name: 'microphone' }).then(result => {
+                if (result.state === 'denied') {
+                    console.warn('El acceso al micrófono está denegado');
+                }
+            });
+            
+            navigator.permissions.query({ name: 'camera' }).then(result => {
+                if (result.state === 'denied') {
+                    console.warn('El acceso a la cámara está denegado');
+                }
+            });
+        });
     </script>
 </body>
 </html>
