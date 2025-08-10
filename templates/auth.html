@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if mode == 'login' %}Iniciar Sesión{% else %}Registrarse{% endif %}</title>
+    <title>Autenticación</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
+                :root {
             --primary: #4361ee;
             --primary-dark: #3a0ca3;
             --danger: #f72585;
@@ -205,56 +205,46 @@
         {% if error %}
             <p class="error">
                 <i class="fas fa-exclamation-circle"></i>
-                <span>{{ error }}</span>
+                {{ error }}
             </p>
         {% endif %}
 
         <form method="POST" enctype="multipart/form-data">
-            <div class="input-group">
-                <input type="text" name="username" placeholder="Usuario" required>
-            </div>
+            <input type="text" name="username" placeholder="Usuario" required>
+            <input type="password" name="password" placeholder="Contraseña" required>
             
-            <div class="input-group">
-                <input type="password" name="password" placeholder="Contraseña" required>
-            </div>
-
             {% if mode == 'register' %}
-                <div class="avatar-container">
-                    <label for="avatar-upload" class="avatar-preview" id="avatar-preview">
-                        <i class="fas fa-user"></i>
-                    </label>
-                    <input type="file" id="avatar-upload" name="avatar" accept="image/*">
-                </div>
+                <label for="avatar-upload" class="avatar-preview" id="avatar-preview">
+                    <i class="fas fa-user"></i>
+                </label>
+                <input type="file" id="avatar-upload" name="avatar" accept="image/*">
             {% endif %}
-
-            <input type="hidden" name="action" value="{{ mode }}">
             
+            <input type="hidden" name="action" value="{{ mode }}">
             <button type="submit">
-                <i class="fas fa-{% if mode == 'login' %}sign-in-alt{% else %}user-plus{% endif %}"></i>
-                <span>{% if mode == 'login' %}Iniciar Sesión{% else %}Registrarse{% endif %}</span>
+                {% if mode == 'login' %}Iniciar Sesión{% else %}Registrarse{% endif %}
             </button>
         </form>
 
         <p class="switch-mode">
-            {% if mode == 'login' %}¿No tienes cuenta?{% else %}¿Ya tienes cuenta?{% endif %}
-            <a href="{{ url_for('auth', mode=('register' if mode == 'login' else 'login')) }}">
-                {% if mode == 'login' %}Registrarse{% else %}Iniciar Sesión{% endif %}
-            </a>
+            {% if mode == 'login' %}
+                ¿No tienes cuenta? <a href="{{ url_for('auth', mode='register') }}">Regístrate</a>
+            {% else %}
+                ¿Ya tienes cuenta? <a href="{{ url_for('auth', mode='login') }}">Inicia Sesión</a>
+            {% endif %}
         </p>
     </div>
 
     <script>
         // Vista previa del avatar
-        const avatarUpload = document.getElementById('avatar-upload');
-        const avatarPreview = document.getElementById('avatar-preview');
-
-        if (avatarUpload && avatarPreview) {
-            avatarUpload.addEventListener('change', function(e) {
+        if (document.getElementById('avatar-upload')) {
+            document.getElementById('avatar-upload').addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
                     reader.onload = function(e) {
-                        avatarPreview.innerHTML = `<img src="${e.target.result}" alt="Avatar preview">`;
+                        document.getElementById('avatar-preview').innerHTML = 
+                            `<img src="${e.target.result}" alt="Preview">`;
                     }
                     reader.readAsDataURL(file);
                 }
