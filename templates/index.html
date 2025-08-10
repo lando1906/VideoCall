@@ -60,18 +60,19 @@
         #user-list li:hover {
             transform: scale(1.02);
         }
-        .call-btn {
+        .call-btn, .audio-btn {
             background: none;
             border: none;
             cursor: pointer;
+            margin-left: 0.5rem;
         }
-        .call-btn svg {
+        .call-btn svg, .audio-btn svg {
             width: 24px;
             height: 24px;
             fill: #fff;
             transition: transform 0.3s ease;
         }
-        .call-btn:hover svg {
+        .call-btn:hover svg, .audio-btn:hover svg {
             transform: scale(1.2);
         }
         .call-notification {
@@ -106,6 +107,7 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.9);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             gap: 1rem;
@@ -118,6 +120,26 @@
             max-width: 500px;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+        #call-status {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        #call-timer {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+        #end-call-btn {
+            padding: 0.8rem 1.5rem;
+            background: #ff4d4d;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        #end-call-btn:hover {
+            background: #cc0000;
         }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-20px); }
@@ -136,13 +158,16 @@
         <h3>Usuarios Conectados</h3>
         <ul id="user-list"></ul>
         <div id="call-notification" class="call-notification hidden">
-            <p>Llamada entrante de <span id="caller-name"></span></p>
+            <p>Llamada <span id="call-type"></span> entrante de <span id="caller-name"></span></p>
             <button id="accept-call">Aceptar</button>
             <button id="reject-call">Rechazar</button>
         </div>
         <div id="video-call" class="video-call hidden">
+            <p id="call-status">Conectando...</p>
+            <p id="call-timer">00:00</p>
             <video id="local-video" autoplay muted></video>
             <video id="remote-video" autoplay></video>
+            <button id="end-call-btn">Colgar</button>
         </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.min.js"></script>
@@ -151,15 +176,51 @@
         const userList = document.getElementById('user-list');
         const callNotification = document.getElementById('call-notification');
         const callerName = document.getElementById('caller-name');
+        const callType = document.getElementById('call-type');
         const acceptCallBtn = document.getElementById('accept-call');
         const rejectCallBtn = document.getElementById('reject-call');
         const videoCall = document.getElementById('video-call');
         const localVideo = document.getElementById('local-video');
         const remoteVideo = document.getElementById('remote-video');
+        const callStatus = document.getElementById('call-status');
+        const callTimer = document.getElementById('call-timer');
+        const endCallBtn = document.getElementById('end-call-btn');
 
         let localStream;
         let peerConnection;
+        let callStartTime;
+        let timerInterval;
         const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+        function startTimer() {
+            callStartTime = Date.now();
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const seconds = (elapsed % 60).toString().padStart(2, '0');
+                callTimer.textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            callTimer.textContent = '00:00';
+        }
+
+        function endCall() {
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            videoCall.classList.add('hidden');
+            callStatus.textContent = 'Conectando...';
+            stopTimer();
+            socket.emit('end_call', { room: currentRoom });
+        }
 
         socket.on('update_users', (users) => {
             userList.innerHTML = '';
@@ -167,11 +228,16 @@
                 if (user !== '{{ username }}') {
                     const li = document.createElement('li');
                     li.textContent = user;
-                    const callBtn = document.createElement('button');
-                    callBtn.className = 'call-btn';
-                    callBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>`;
-                    callBtn.onclick = () => startCall(user);
-                    li.appendChild(callBtn);
+                    const videoBtn = document.createElement('button');
+                    videoBtn.className = 'call-btn';
+                    videoBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>`;
+                    videoBtn.onclick = () => startCall(user, 'video');
+                    const audioBtn = document.createElement('button');
+                    audioBtn.className = 'audio-btn';
+                    audioBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+                    audioBtn.onclick = () => startCall(user, 'audio');
+                    li.appendChild(videoBtn);
+                    li.appendChild(audioBtn);
                     userList.appendChild(li);
                 }
             });
@@ -179,13 +245,14 @@
 
         socket.on('incoming_call', (data) => {
             callerName.textContent = data.caller;
+            callType.textContent = data.call_type === 'video' ? 'de video' : 'de audio';
             callNotification.classList.remove('hidden');
         });
 
         acceptCallBtn.onclick = () => {
             callNotification.classList.add('hidden');
-            socket.emit('accept_call', { caller: callerName.textContent });
-            startVideoCall();
+            socket.emit('accept_call', { caller: callerName.textContent, call_type: callType.textContent.includes('video') ? 'video' : 'audio' });
+            startVideoCall(null, callType.textContent.includes('video') ? 'video' : 'audio');
         };
 
         rejectCallBtn.onclick = () => {
@@ -194,11 +261,16 @@
         };
 
         socket.on('call_accepted', (data) => {
-            startVideoCall(data.room);
+            startVideoCall(data.room, data.call_type);
         });
 
         socket.on('call_rejected', () => {
             alert('Llamada rechazada');
+            endCall();
+        });
+
+        socket.on('call_ended', () => {
+            endCall();
         });
 
         socket.on('webrtc_signal', (data) => {
@@ -215,34 +287,50 @@
             }
         });
 
-        async function startCall(targetUser) {
-            socket.emit('start_call', { target_user: targetUser });
+        let currentRoom;
+        async function startCall(targetUser, callType) {
+            currentRoom = `{{ username }}_${targetUser}`;
+            socket.emit('start_call', { target_user: targetUser, call_type: callType });
+            callStatus.textContent = 'Llamando...';
+            startVideoCall(null, callType);
         }
 
-        async function startVideoCall(room) {
+        async function startVideoCall(room, callType) {
             videoCall.classList.remove('hidden');
-            localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-            localVideo.srcObject = localStream;
-
-            peerConnection = new RTCPeerConnection(configuration);
-            localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-            peerConnection.ontrack = (event) => {
-                remoteVideo.srcObject = event.streams[0];
-            };
-
-            peerConnection.onicecandidate = (event) => {
-                if (event.candidate) {
-                    socket.emit('webrtc_signal', { candidate: event.candidate, room });
+            callStatus.textContent = 'Conectando...';
+            const constraints = callType === 'video' ? { video: true, audio: true } : { video: false, audio: true };
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                localVideo.srcObject = callType === 'video' ? localStream : null;
+                peerConnection = new RTCPeerConnection(configuration);
+                localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                peerConnection.ontrack = (event) => {
+                    remoteVideo.srcObject = callType === 'video' ? event.streams[0] : null;
+                    callStatus.textContent = 'En llamada';
+                    startTimer();
+                };
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit('webrtc_signal', { candidate: event.candidate, room: room || currentRoom });
+                    }
+                };
+                if (!room) {
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    socket.emit('webrtc_signal', { offer, room: currentRoom });
+                } else {
+                    currentRoom = room;
                 }
-            };
-
-            if (!room) {
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                socket.emit('webrtc_signal', { offer, room: `${'{{ username }}'}_${targetUser}` });
+            } catch (error) {
+                console.error('Error iniciando llamada:', error);
+                endCall();
+                alert('Error al iniciar la llamada. Verifica los permisos de cámara/micrófono.');
             }
         }
+
+        endCallBtn.onclick = () => {
+            endCall();
+        };
     </script>
 </body>
 </html>
