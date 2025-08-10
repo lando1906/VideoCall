@@ -105,7 +105,7 @@ def logout():
     username = session.pop('username', None)
     if username in online_users:
         online_users.remove(username)
-        emit('update_users', list(online_users), broadcast=True)
+        emit('update_users', list(online_users), broadcast=True, namespace='/')
     
     # Terminar cualquier llamada activa
     for room, users in active_calls.items():
@@ -120,15 +120,17 @@ def logout():
 @socketio.on('connect')
 def handle_connect():
     if 'username' in session:
-        online_users.add(session['username'])
-        emit('update_users', list(online_users), broadcast=True)
+        username = session['username']
+        if username not in online_users:
+            online_users.add(username)
+            emit('update_users', list(online_users), broadcast=True, namespace='/')
 
 @socketio.on('disconnect')
 def handle_disconnect():
     if 'username' in session and session['username'] in online_users:
         username = session['username']
         online_users.remove(username)
-        emit('update_users', list(online_users), broadcast=True)
+        emit('update_users', list(online_users), broadcast=True, namespace='/')
         
         # Terminar llamadas si el usuario se desconecta
         for room, users in active_calls.items():
@@ -146,9 +148,9 @@ def handle_start_call(data):
     if target_user in online_users:
         room = f"{caller}_{target_user}"
         active_calls[room] = [caller, target_user]
-        emit('incoming_call', {'caller': caller, 'call_type': call_type}, to=target_user)
+        emit('incoming_call', {'caller': caller, 'call_type': call_type}, room=target_user)
     else:
-        emit('call_rejected', to=caller)
+        emit('call_rejected', room=caller)
 
 @socketio.on('accept_call')
 def handle_accept_call(data):
@@ -158,14 +160,14 @@ def handle_accept_call(data):
     room = f"{caller}_{target_user}"
     
     join_room(room)
-    emit('join_room', {'room': room}, to=caller)
+    emit('join_room', {'room': room}, room=caller)
     
-    emit('call_accepted', {'room': room, 'call_type': call_type}, to=caller)
+    emit('call_accepted', {'room': room, 'call_type': call_type}, room=caller)
 
 @socketio.on('reject_call')
 def handle_reject_call(data):
     caller = data['caller']
-    emit('call_rejected', to=caller)
+    emit('call_rejected', room=caller)
 
 @socketio.on('end_call')
 def handle_end_call(data):
