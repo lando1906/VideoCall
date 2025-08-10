@@ -69,6 +69,24 @@
         a:hover {
             text-decoration: underline;
         }
+        .avatar-btn {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            margin: 0.5rem auto;
+        }
+        .avatar-btn svg {
+            width: 40px;
+            height: 40px;
+            fill: #fff;
+            transition: transform 0.3s ease;
+        }
+        .avatar-btn:hover svg {
+            transform: scale(1.1);
+        }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-20px); }
             to { opacity: 1; transform: translateY(0); }
@@ -81,9 +99,17 @@
         {% if error %}
             <p class="error">{{ error }}</p>
         {% endif %}
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             <input type="text" name="username" placeholder="Usuario" required>
             <input type="password" name="password" placeholder="Contraseña" required>
+            {% if mode == 'register' %}
+                <label for="avatar-upload" class="avatar-btn" title="Seleccionar foto de perfil">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                </label>
+                <input type="file" id="avatar-upload" name="avatar" accept="image/*" style="display: none;">
+            {% endif %}
             <input type="hidden" name="action" value="{{ mode }}">
             <button type="submit">{% if mode == 'login' %}Iniciar Sesión{% else %}Registrarse{% endif %}</button>
         </form>
