@@ -1,212 +1,299 @@
-from flask import Flask, render_template, request, redirect, url_for, session
-from flask_socketio import SocketIO, emit, join_room, leave_room
-import sqlite3
-from werkzeug.security import generate_password_hash, check_password_hash
 import os
-import time
-from gevent import monkey
+from flask import Flask, request, jsonify, send_from_directory
+from flask_socketio import SocketIO
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import uuid
+from datetime import datetime
+from dotenv import load_dotenv
 
-monkey.patch_all()
+# Cargar variables de entorno
+load_dotenv()
 
-app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret-key')
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
+# Configuración para Render
+app = Flask(__name__, static_folder='static')
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'secret-key-dev')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///database.db').replace('postgres://', 'postgresql://')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
+app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB max para avatares
 
-socketio = SocketIO(app, async_mode='gevent', cors_allowed_origins="*")
+# Asegurar que la carpeta de uploads existe
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Database setup
-def get_db_connection():
-    conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row
-    return conn
+# Inicializar extensiones
+db = SQLAlchemy(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
-def init_db():
-    with get_db_connection() as conn:
-        conn.execute('''CREATE TABLE IF NOT EXISTS users (
-                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                     username TEXT UNIQUE NOT NULL,
-                     password TEXT NOT NULL,
-                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                     )''')
-        conn.commit()
+# Modelos
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(120), nullable=False)
+    display_name = db.Column(db.String(80), nullable=False)
+    avatar = db.Column(db.String(120))
+    online = db.Column(db.Boolean, default=False)
+    last_seen = db.Column(db.DateTime)
 
-init_db()
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
 
-# Global variables
-online_users = set()
-active_calls = {}
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
-# Routes
-@app.route('/')
-def index():
-    if 'username' not in session:
-        return redirect(url_for('auth', mode='login'))
-    return render_template('index.html', username=session['username'])
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    read = db.Column(db.Boolean, default=False)
 
-@app.route('/auth', methods=['GET', 'POST'])
-def auth():
-    mode = request.args.get('mode', 'login')
+    sender = db.relationship('User', foreign_keys=[sender_id])
+    receiver = db.relationship('User', foreign_keys=[receiver_id])
+
+# Helpers
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+def save_avatar(file):
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        unique_filename = f"{uuid.uuid4().hex}_{filename}"
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], unique_filename))
+        return unique_filename
+    return None
+
+# API Routes
+@app.route('/api/users')
+def get_users():
+    exclude_id = request.args.get('exclude')
+    users = User.query.filter(User.id != exclude_id).all()
+    return jsonify([{
+        'id': user.id,
+        'username': user.username,
+        'display_name': user.display_name,
+        'avatar': user.avatar,
+        'online': user.online
+    } for user in users])
+
+@app.route('/api/chats')
+def get_chats():
+    user_id = request.args.get('user_id')
+    # Implementación simplificada - en producción usarías una relación many-to-many
+    messages = Message.query.filter(
+        (Message.sender_id == user_id) | (Message.receiver_id == user_id)
+    ).order_by(Message.timestamp.desc()).all()
     
-    if request.method == 'POST':
-        username = request.form['username'].strip()
-        password = request.form['password']
+    # Procesar para agrupar por chat
+    chats = {}
+    for msg in messages:
+        other_user_id = msg.receiver_id if msg.sender_id == int(user_id) else msg.sender_id
+        if other_user_id not in chats:
+            user = User.query.get(other_user_id)
+            chats[other_user_id] = {
+                'id': f"{min(int(user_id), other_user_id)}-{max(int(user_id), other_user_id)}",
+                'unread_count': 0,
+                'last_message': None,
+                'participant': {
+                    'id': user.id,
+                    'display_name': user.display_name,
+                    'avatar': user.avatar,
+                    'online': user.online
+                }
+            }
         
-        with get_db_connection() as conn:
-            if request.form['action'] == 'login':
-                user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
-                if user and check_password_hash(user['password'], password):
-                    session['username'] = username
-                    return redirect(url_for('index'))
-                return render_template('auth.html', error='Credenciales inválidas', mode='login')
-            
-            elif request.form['action'] == 'register':
-                existing_user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
-                if existing_user:
-                    return render_template('auth.html', error='Usuario ya existe', mode='register')
-                
-                conn.execute('INSERT INTO users (username, password) VALUES (?, ?)',
-                            (username, generate_password_hash(password)))
-                conn.commit()
-                session['username'] = username
-                return redirect(url_for('index'))
+        if not chats[other_user_id]['last_message']:
+            chats[other_user_id]['last_message'] = {
+                'content': msg.content,
+                'timestamp': msg.timestamp.isoformat(),
+                'read': msg.read
+            }
+        
+        if not msg.read and msg.receiver_id == int(user_id):
+            chats[other_user_id]['unread_count'] += 1
     
-    return render_template('auth.html', mode=mode)
+    return jsonify(list(chats.values()))
 
-@app.route('/logout')
-def logout():
-    username = session.pop('username', None)
-    if username in online_users:
-        online_users.remove(username)
-        emit('update_users', list(online_users), broadcast=True)
+@app.route('/api/messages')
+def get_messages():
+    chat_id = request.args.get('chat_id')
+    user1_id, user2_id = map(int, chat_id.split('-'))
     
-    # End all active calls for this user
-    for room_id, call_data in list(active_calls.items()):
-        if username in [call_data['caller'], call_data['callee']]:
-            emit('call_ended', {'room_id': room_id}, room=room_id)
-            del active_calls[room_id]
+    messages = Message.query.filter(
+        ((Message.sender_id == user1_id) & (Message.receiver_id == user2_id)) |
+        ((Message.sender_id == user2_id) & (Message.receiver_id == user1_id))
+    ).order_by(Message.timestamp.asc()).all()
     
-    return redirect(url_for('auth', mode='login'))
+    return jsonify([{
+        'id': msg.id,
+        'sender_id': msg.sender_id,
+        'content': msg.content,
+        'timestamp': msg.timestamp.isoformat(),
+        'read': msg.read
+    } for msg in messages])
+
+@app.route('/api/messages', methods=['POST'])
+def create_message():
+    data = request.json
+    new_message = Message(
+        sender_id=data['sender_id'],
+        receiver_id=data['receiver_id'],
+        content=data['content']
+    )
+    db.session.add(new_message)
+    db.session.commit()
+    
+    # Emitir evento de Socket.IO
+    socketio.emit('receive_message', {
+        'id': new_message.id,
+        'sender_id': new_message.sender_id,
+        'receiver_id': new_message.receiver_id,
+        'content': new_message.content,
+        'timestamp': new_message.timestamp.isoformat(),
+        'read': new_message.read
+    })
+    
+    return jsonify({'success': True, 'message_id': new_message.id})
+
+@app.route('/api/update_avatar', methods=['POST'])
+def update_avatar():
+    if 'avatar' not in request.files:
+        return jsonify({'success': False, 'error': 'No file uploaded'})
+    
+    user_id = request.form.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'User ID required'})
+    
+    file = request.files['avatar']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No selected file'})
+    
+    avatar_filename = save_avatar(file)
+    if not avatar_filename:
+        return jsonify({'success': False, 'error': 'Invalid file type'})
+    
+    user = User.query.get(user_id)
+    if user:
+        # Eliminar avatar anterior si existe
+        if user.avatar:
+            try:
+                os.remove(os.path.join(app.config['UPLOAD_FOLDER'], user.avatar))
+            except OSError:
+                pass
+        
+        user.avatar = avatar_filename
+        db.session.commit()
+        
+        return jsonify({'success': True, 'avatar': avatar_filename})
+    
+    return jsonify({'success': False, 'error': 'User not found'})
+
+# Auth Routes
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.form
+    user = User.query.filter_by(username=data['username']).first()
+    
+    if user and user.check_password(data['password']):
+        user.online = True
+        user.last_seen = datetime.utcnow()
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'user_id': user.id,
+            'username': user.username,
+            'display_name': user.display_name,
+            'avatar': user.avatar
+        })
+    
+    return jsonify({'success': False, 'error': 'Invalid credentials'})
+
+@app.route('/register', methods=['POST'])
+def register():
+    if 'username' not in request.form or 'password' not in request.form:
+        return jsonify({'success': False, 'error': 'Missing required fields'})
+    
+    if User.query.filter_by(username=request.form['username']).first():
+        return jsonify({'success': False, 'error': 'Username already exists'})
+    
+    new_user = User(
+        username=request.form['username'],
+        display_name=request.form.get('display_name', request.form['username'])
+    )
+    new_user.set_password(request.form['password'])
+    
+    if 'avatar' in request.files:
+        avatar_filename = save_avatar(request.files['avatar'])
+        if avatar_filename:
+            new_user.avatar = avatar_filename
+    
+    db.session.add(new_user)
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'user_id': new_user.id,
+        'username': new_user.username,
+        'display_name': new_user.display_name,
+        'avatar': new_user.avatar
+    })
+
+# Static Files
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.route('/static/<path:path>')
+def serve_static(path):
+    return send_from_directory('static', path)
 
 # Socket.IO Events
 @socketio.on('connect')
 def handle_connect():
-    if 'username' in session:
-        username = session['username']
-        if username not in online_users:
-            online_users.add(username)
-            emit('update_users', list(online_users), broadcast=True)
+    user_id = request.args.get('user_id')
+    if user_id:
+        user = User.query.get(user_id)
+        if user:
+            user.online = True
+            user.last_seen = datetime.utcnow()
+            db.session.commit()
+            socketio.emit('user_status', {
+                'user_id': user.id,
+                'online': True
+            }, broadcast=True)
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    if 'username' in session and session['username'] in online_users:
-        username = session['username']
-        online_users.remove(username)
-        emit('update_users', list(online_users), broadcast=True)
-        
-        # End all active calls for this user
-        for room_id, call_data in list(active_calls.items()):
-            if username in [call_data['caller'], call_data['callee']]:
-                emit('call_ended', {'room_id': room_id}, room=room_id)
-                del active_calls[room_id]
+    user_id = request.args.get('user_id')
+    if user_id:
+        user = User.query.get(user_id)
+        if user:
+            user.online = False
+            user.last_seen = datetime.utcnow()
+            db.session.commit()
+            socketio.emit('user_status', {
+                'user_id': user.id,
+                'online': False
+            }, broadcast=True)
 
-@socketio.on('start_call')
-def handle_start_call(data):
-    caller = session['username']
-    target_user = data['target_user']
-    call_type = data['call_type']
-    room_id = f"call_{caller}_{target_user}_{int(time.time())}"
-    
-    if target_user in online_users:
-        active_calls[room_id] = {
-            'caller': caller,
-            'callee': target_user,
-            'type': call_type,
-            'status': 'ringing'
-        }
-        
-        emit('incoming_call', {
-            'caller': caller,
-            'call_type': call_type,
-            'room_id': room_id
-        }, room=target_user)
-        
-        emit('call_initiated', {
-            'room_id': room_id,
-            'target_user': target_user
-        }, room=caller)
-    else:
-        emit('call_failed', {
-            'reason': 'El usuario no está disponible',
-            'target_user': target_user
-        }, room=caller)
+@socketio.on('mark_as_read')
+def handle_mark_as_read(data):
+    if 'message_ids' in data:
+        messages = Message.query.filter(Message.id.in_(data['message_ids'])).all()
+        for msg in messages:
+            msg.read = True
+        db.session.commit()
 
-@socketio.on('accept_call')
-def handle_accept_call(data):
-    room_id = data['room_id']
-    callee = session['username']
-    
-    if room_id in active_calls and active_calls[room_id]['callee'] == callee:
-        active_calls[room_id]['status'] = 'accepted'
-        join_room(room_id)
-        emit('join_room', {'room_id': room_id}, room=active_calls[room_id]['caller'])
-        
-        emit('call_accepted', {
-            'room_id': room_id,
-            'callee': callee,
-            'call_type': active_calls[room_id]['type']
-        }, room=active_calls[room_id]['caller'])
-    else:
-        emit('call_ended', {
-            'reason': 'La llamada ya no está disponible',
-            'room_id': room_id
-        }, room=callee)
+# Inicialización
+@app.before_first_request
+def create_tables():
+    db.create_all()
 
-@socketio.on('reject_call')
-def handle_reject_call(data):
-    room_id = data.get('room_id')
-    if room_id in active_calls:
-        emit('call_rejected', {
-            'room_id': room_id,
-            'caller': active_calls[room_id]['caller'],
-            'reason': 'Llamada rechazada'
-        }, room=active_calls[room_id]['caller'])
-        
-        emit('call_ended', {
-            'reason': 'Llamada rechazada',
-            'room_id': room_id
-        }, room=active_calls[room_id]['callee'])
-        
-        del active_calls[room_id]
-
-@socketio.on('end_call')
-def handle_end_call(data):
-    room_id = data['room_id']
-    if room_id in active_calls:
-        emit('call_ended', {
-            'room_id': room_id,
-            'reason': 'Llamada finalizada'
-        }, room=room_id)
-        
-        if room_id in active_calls:
-            del active_calls[room_id]
-
-@socketio.on('join_room')
-def handle_join_room(data):
-    join_room(data['room_id'])
-
-@socketio.on('webrtc_signal')
-def handle_webrtc_signal(data):
-    room_id = data['room_id']
-    target = data.get('target')
-    
-    # Reenviar señal al destinatario específico o a toda la sala
-    if target:
-        emit('webrtc_signal', data, room=target)
-    else:
-        emit('webrtc_signal', data, room=room_id)
-
+# Configuración para producción en Render
 if __name__ == '__main__':
-    if not os.path.exists(app.config['UPLOAD_FOLDER']):
-        os.makedirs(app.config['UPLOAD_FOLDER'])
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    socketio.run(app, host='0.0.0.0', port=port)
