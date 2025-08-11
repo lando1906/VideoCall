@@ -191,63 +191,63 @@
     <div class="auth-container">
         <div class="auth-card" id="login-card">
             <h2 class="auth-title">Iniciar Sesión</h2>
-            
+
             <form class="auth-form" id="login-form">
                 <div class="form-group">
                     <label for="login-username" class="form-label">Nombre de usuario</label>
                     <input type="text" id="login-username" class="form-input" placeholder="Tu nombre de usuario" required>
                     <div class="error-message" id="login-username-error">Por favor ingresa tu nombre de usuario</div>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="login-password" class="form-label">Contraseña</label>
                     <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
                     <div class="error-message" id="login-password-error">La contraseña es requerida</div>
                 </div>
-                
+
                 <button type="submit" class="auth-button">Iniciar Sesión</button>
             </form>
-            
+
             <div class="auth-footer">
                 ¿No tienes una cuenta? <a href="#" class="auth-link" id="show-register">Regístrate</a>
             </div>
         </div>
-        
+
         <div class="auth-card hidden" id="register-card">
             <h2 class="auth-title">Crear Cuenta</h2>
-            
+
             <form class="auth-form" id="register-form" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="register-username" class="form-label">Nombre de usuario</label>
                     <input type="text" id="register-username" class="form-input" placeholder="Elige un nombre de usuario" required>
                     <div class="error-message" id="register-username-error">Por favor ingresa un nombre de usuario</div>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="register-display-name" class="form-label">Nombre para mostrar</label>
                     <input type="text" id="register-display-name" class="form-input" placeholder="Como te verán los demás">
                 </div>
-                
+
                 <div class="form-group">
                     <label for="register-password" class="form-label">Contraseña</label>
                     <input type="password" id="register-password" class="form-input" placeholder="••••••••" required>
                     <div class="error-message" id="register-password-error">La contraseña debe tener al menos 6 caracteres</div>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="register-confirm" class="form-label">Confirmar contraseña</label>
                     <input type="password" id="register-confirm" class="form-input" placeholder="••••••••" required>
                     <div class="error-message" id="register-confirm-error">Las contraseñas no coinciden</div>
                 </div>
-                
+
                 <div class="form-group">
                     <label for="register-avatar" class="form-label">Foto de perfil (opcional)</label>
                     <input type="file" id="register-avatar" class="form-input" accept="image/*">
                 </div>
-                
+
                 <button type="submit" class="auth-button">Registrarse</button>
             </form>
-            
+
             <div class="auth-footer">
                 ¿Ya tienes una cuenta? <a href="#" class="auth-link" id="show-login">Iniciar Sesión</a>
             </div>
@@ -260,26 +260,26 @@
             const registerCard = document.getElementById('register-card');
             const showRegister = document.getElementById('show-register');
             const showLogin = document.getElementById('show-login');
-            
+
             const loginForm = document.getElementById('login-form');
             const registerForm = document.getElementById('register-form');
-            
+
             showRegister.addEventListener('click', (e) => {
                 e.preventDefault();
                 loginCard.classList.add('hidden');
                 registerCard.classList.remove('hidden');
             });
-            
+
             showLogin.addEventListener('click', (e) => {
                 e.preventDefault();
                 registerCard.classList.add('hidden');
                 loginCard.classList.remove('hidden');
             });
-            
+
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 let isValid = true;
-                
+
                 const username = document.getElementById('login-username');
                 const usernameError = document.getElementById('login-username-error');
                 if (!username.value) {
@@ -290,7 +290,7 @@
                     username.classList.remove('input-error');
                     usernameError.style.display = 'none';
                 }
-                
+
                 const password = document.getElementById('login-password');
                 const passwordError = document.getElementById('login-password-error');
                 if (!password.value || password.value.length < 6) {
@@ -301,7 +301,7 @@
                     password.classList.remove('input-error');
                     passwordError.style.display = 'none';
                 }
-                
+
                 if (isValid) {
                     try {
                         const response = await fetch('/login', {
@@ -314,16 +314,16 @@
                                 'password': password.value
                             })
                         });
-                        
+
                         const data = await response.json();
-                        
+
                         if (data.success) {
                             // Guardar datos de usuario en sessionStorage
                             sessionStorage.setItem('user_id', data.user_id);
                             sessionStorage.setItem('username', data.username);
                             sessionStorage.setItem('display_name', data.display_name);
                             sessionStorage.setItem('avatar', data.avatar);
-                            
+
                             // Redirigir al chat
                             window.location.href = '/chat?user_id=' + data.user_id;
                         } else {
@@ -335,11 +335,11 @@
                     }
                 }
             });
-            
+
             registerForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 let isValid = true;
-                
+
                 const username = document.getElementById('register-username');
                 const usernameError = document.getElementById('register-username-error');
                 if (!username.value) {
@@ -350,7 +350,7 @@
                     username.classList.remove('input-error');
                     usernameError.style.display = 'none';
                 }
-                
+
                 const password = document.getElementById('register-password');
                 const passwordError = document.getElementById('register-password-error');
                 if (!password.value || password.value.length < 6) {
@@ -361,7 +361,7 @@
                     password.classList.remove('input-error');
                     passwordError.style.display = 'none';
                 }
-                
+
                 const confirm = document.getElementById('register-confirm');
                 const confirmError = document.getElementById('register-confirm-error');
                 if (!confirm.value || confirm.value !== password.value) {
@@ -372,38 +372,38 @@
                     confirm.classList.remove('input-error');
                     confirmError.style.display = 'none';
                 }
-                
+
                 if (isValid) {
                     try {
                         const formData = new FormData();
                         formData.append('username', username.value);
                         formData.append('password', password.value);
                         formData.append('confirm_password', confirm.value);
-                        
+
                         const displayName = document.getElementById('register-display-name').value;
                         if (displayName) {
                             formData.append('display_name', displayName);
                         }
-                        
+
                         const avatarInput = document.getElementById('register-avatar');
                         if (avatarInput.files[0]) {
                             formData.append('avatar', avatarInput.files[0]);
                         }
-                        
+
                         const response = await fetch('/register', {
                             method: 'POST',
                             body: formData
                         });
-                        
+
                         const data = await response.json();
-                        
+
                         if (data.success) {
                             // Guardar datos de usuario en sessionStorage
                             sessionStorage.setItem('user_id', data.user_id);
                             sessionStorage.setItem('username', data.username);
                             sessionStorage.setItem('display_name', data.display_name);
                             sessionStorage.setItem('avatar', data.avatar);
-                            
+
                             // Redirigir al chat
                             window.location.href = '/chat?user_id=' + data.user_id;
                         } else {
