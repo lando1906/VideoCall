@@ -6,3 +6,7 @@ werkzeug
 gunicorn
 gevent
 gevent-websocket
+Flask-SQLAlchemy
+python-dotenv
+psycopg2-binary
+eventlet
