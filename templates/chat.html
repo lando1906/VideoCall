@@ -195,8 +195,8 @@
             min-width: 20px;
             text-align: center;
             position: absolute;
-            right: 0;
-            bottom: 0;
+            right: 4px;
+            bottom: 4px;
         }
 
         /* Botón flotante */
@@ -404,7 +404,7 @@
                 height: 160px;
                 font-size: 3.5rem;
             }
-            
+
             .profile-name {
                 font-size: 2rem;
             }
@@ -423,20 +423,20 @@
                 </svg>
             </button>
         </div>
-        
+
         <div class="content">
             <div id="chat-list" class="chat-list">
                 <!-- Los chats se cargarán aquí -->
             </div>
         </div>
-        
+
         <button id="new-chat-button" class="floating-button" aria-label="Nuevo chat">
             <svg viewBox="0 0 24 24">
                 <path d="M12 5v14M5 12h14"/>
             </svg>
         </button>
     </div>
-    
+
     <!-- Pantalla de usuarios -->
     <div id="users-screen" class="screen hidden">
         <div class="header">
@@ -447,14 +447,14 @@
             </button>
             <h1 class="header-title">Nuevo chat</h1>
         </div>
-        
+
         <div class="content">
             <div id="user-list" class="chat-list">
                 <!-- Los usuarios se cargarán aquí -->
             </div>
         </div>
     </div>
-    
+
     <!-- Pantalla de conversación -->
     <div id="chat-screen" class="screen hidden">
         <div class="header">
@@ -471,12 +471,12 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="conversation">
             <div id="messages-container" class="messages">
                 <!-- Los mensajes se cargarán aquí -->
             </div>
-            
+
             <div class="input-area">
                 <textarea id="message-input" class="message-input" placeholder="Escribe un mensaje..." rows="1"></textarea>
                 <button id="send-button" class="send-button" disabled aria-label="Enviar">
@@ -487,7 +487,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Pantalla de mi perfil -->
     <div id="profile-screen" class="screen hidden">
         <div class="header">
@@ -498,7 +498,7 @@
             </button>
             <h1 class="header-title">Mi perfil</h1>
         </div>
-        
+
         <div class="content">
             <div class="profile-container">
                 <div class="profile-avatar" id="profile-big-avatar">
@@ -513,7 +513,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Pantalla de perfil de usuario -->
     <div id="user-profile-screen" class="screen hidden">
         <div class="header">
@@ -524,7 +524,7 @@
             </button>
             <h1 class="header-title">Perfil</h1>
         </div>
-        
+
         <div class="content">
             <div class="profile-container">
                 <div class="profile-avatar" id="user-profile-avatar">
@@ -541,7 +541,7 @@
             // Obtener ID de usuario de la URL
             const urlParams = new URLSearchParams(window.location.search);
             const currentUserId = urlParams.get('user_id');
-            
+
             // Datos del usuario actual
             const currentUser = {
                 id: currentUserId,
@@ -549,7 +549,7 @@
                 displayName: sessionStorage.getItem('display_name') || 'Usuario',
                 avatar: sessionStorage.getItem('avatar')
             };
-            
+
             // Elementos del DOM
             const screens = {
                 chats: document.getElementById('chats-screen'),
@@ -558,7 +558,7 @@
                 profile: document.getElementById('profile-screen'),
                 userProfile: document.getElementById('user-profile-screen')
             };
-            
+
             const buttons = {
                 newChat: document.getElementById('new-chat-button'),
                 back: document.getElementById('back-button'),
@@ -569,7 +569,7 @@
                 send: document.getElementById('send-button'),
                 changeAvatar: document.getElementById('change-avatar-button')
             };
-            
+
             const elements = {
                 chatList: document.getElementById('chat-list'),
                 userList: document.getElementById('user-list'),
@@ -584,32 +584,34 @@
                 userProfileName: document.getElementById('user-profile-name'),
                 userProfileStatus: document.getElementById('user-profile-status')
             };
-            
+
             // Estado de la aplicación
             let currentChat = null;
             let currentChatUser = null;
             let users = [];
             let chats = [];
-            
+            let typingTimeout;
+            let isTyping = false;
+
             // Conexión Socket.IO
             const socket = io({
                 query: {
                     user_id: currentUserId
                 }
             });
-            
+
             // Mostrar pantalla
             function showScreen(screen) {
                 Object.values(screens).forEach(s => s.classList.add('hidden'));
                 screen.classList.remove('hidden');
             }
-            
+
             // Navegación
             buttons.newChat.addEventListener('click', () => {
                 fetchUsers();
                 showScreen(screens.users);
             });
-            
+
             buttons.back.addEventListener('click', () => showScreen(screens.chats));
             buttons.backChat.addEventListener('click', () => showScreen(screens.chats));
             buttons.backProfile.addEventListener('click', () => showScreen(screens.chats));
@@ -620,16 +622,16 @@
                     showScreen(screens.users);
                 }
             });
-            
+
             buttons.profile.addEventListener('click', () => {
                 updateProfileScreen();
                 showScreen(screens.profile);
             });
-            
+
             // Actualizar pantalla de perfil
             function updateProfileScreen() {
                 elements.profileDisplayName.textContent = currentUser.displayName;
-                
+
                 if (currentUser.avatar) {
                     elements.profileBigAvatar.style.backgroundImage = `url('/uploads/${currentUser.avatar}')`;
                     elements.profileBigAvatar.textContent = '';
@@ -638,41 +640,47 @@
                     elements.profileBigAvatar.style.backgroundImage = '';
                 }
             }
-            
+
             // Cambiar avatar
             buttons.changeAvatar.addEventListener('click', () => {
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'image/*';
-                
+
                 input.onchange = async (e) => {
                     const file = e.target.files[0];
                     if (file) {
                         const formData = new FormData();
                         formData.append('avatar', file);
                         formData.append('user_id', currentUserId);
-                        
+
                         try {
                             const response = await fetch('/api/update_avatar', {
                                 method: 'POST',
                                 body: formData
                             });
-                            
+
                             const result = await response.json();
                             if (result.success) {
                                 currentUser.avatar = result.avatar;
                                 sessionStorage.setItem('avatar', result.avatar);
                                 updateProfileScreen();
+                                
+                                // Actualizar avatar en todas las vistas
+                                if (currentChatUser) {
+                                    elements.chatUserAvatar.style.backgroundImage = `url('/uploads/${result.avatar}')`;
+                                    elements.chatUserAvatar.textContent = '';
+                                }
                             }
                         } catch (error) {
                             console.error('Error al actualizar el avatar:', error);
                         }
                     }
                 };
-                
+
                 input.click();
             });
-            
+
             // Cargar usuarios
             async function fetchUsers() {
                 try {
@@ -683,11 +691,11 @@
                     console.error('Error al cargar usuarios:', error);
                 }
             }
-            
+
             // Renderizar lista de usuarios
             function renderUserList() {
                 elements.userList.innerHTML = '';
-                
+
                 users.forEach(user => {
                     const userElement = document.createElement('div');
                     userElement.className = 'chat-item';
@@ -702,12 +710,12 @@
                             <div class="chat-last-message">${user.online ? 'En línea' : 'Desconectado'}</div>
                         </div>
                     `;
-                    
+
                     userElement.addEventListener('click', () => openChat(user));
                     elements.userList.appendChild(userElement);
                 });
             }
-            
+
             // Cargar chats
             async function fetchChats() {
                 try {
@@ -718,11 +726,11 @@
                     console.error('Error al cargar chats:', error);
                 }
             }
-            
+
             // Renderizar lista de chats
             function renderChatList() {
                 elements.chatList.innerHTML = '';
-                
+
                 chats.forEach(chat => {
                     const otherUser = chat.participant;
                     const chatElement = document.createElement('div');
@@ -742,27 +750,27 @@
                             </div>
                         </div>
                     `;
-                    
+
                     chatElement.addEventListener('click', () => openChat(otherUser, chat.id));
                     elements.chatList.appendChild(chatElement);
                 });
             }
-            
+
             // Formatear hora
             function formatTime(timestamp) {
                 const date = new Date(timestamp);
                 return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             }
-            
+
             // Abrir chat
             async function openChat(user, chatId = null) {
                 currentChatUser = user;
                 currentChat = chatId;
-                
+
                 // Actualizar cabecera del chat
                 elements.chatUserName.textContent = user.display_name;
                 elements.chatUserStatus.textContent = user.online ? 'En línea' : 'Desconectado';
-                
+
                 if (user.avatar) {
                     elements.chatUserAvatar.style.backgroundImage = `url('/uploads/${user.avatar}')`;
                     elements.chatUserAvatar.textContent = '';
@@ -770,7 +778,7 @@
                     elements.chatUserAvatar.textContent = user.display_name.substring(0, 1).toUpperCase();
                     elements.chatUserAvatar.style.backgroundImage = '';
                 }
-                
+
                 // Cargar mensajes
                 if (chatId) {
                     await fetchMessages(chatId);
@@ -778,10 +786,10 @@
                     // Crear nuevo chat si no existe
                     await createChat(user.id);
                 }
-                
+
                 showScreen(screens.chat);
             }
-            
+
             // Crear nuevo chat
             async function createChat(userId) {
                 try {
@@ -795,7 +803,7 @@
                             user2_id: userId
                         })
                     });
-                    
+
                     const newChat = await response.json();
                     currentChat = newChat.id;
                     fetchChats();
@@ -803,14 +811,14 @@
                     console.error('Error al crear chat:', error);
                 }
             }
-            
+
             // Cargar mensajes
             async function fetchMessages(chatId) {
                 try {
                     const response = await fetch(`/api/messages?chat_id=${chatId}`);
                     const messages = await response.json();
                     renderMessages(messages);
-                    
+
                     // Marcar mensajes como leídos
                     const unreadMessages = messages.filter(m => !m.read && m.sender_id !== parseInt(currentUserId));
                     if (unreadMessages.length > 0) {
@@ -820,36 +828,35 @@
                     console.error('Error al cargar mensajes:', error);
                 }
             }
-            
+
             // Renderizar mensajes
             function renderMessages(messages) {
                 elements.messagesContainer.innerHTML = '';
-                
+
                 messages.forEach(message => {
                     const isCurrentUser = message.sender_id === parseInt(currentUserId);
                     const messageElement = document.createElement('div');
                     messageElement.className = `message ${isCurrentUser ? 'sent' : 'received'}`;
-                    
+
                     messageElement.innerHTML = `
                         ${message.content}
                         <div class="message-time">
                             ${formatTime(message.timestamp)}
-                            ${isCurrentUser ? (message.read ? '✓✓' : '✓') : ''}
                         </div>
                     `;
-                    
+
                     elements.messagesContainer.appendChild(messageElement);
                 });
-                
+
                 // Scroll al final
                 elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
             }
-            
+
             // Enviar mensaje
             async function sendMessage() {
                 const messageText = elements.messageInput.value.trim();
                 if (!messageText || !currentChatUser) return;
-                
+
                 try {
                     const response = await fetch('/api/messages', {
                         method: 'POST',
@@ -862,37 +869,56 @@
                             content: messageText
                         })
                     });
-                    
+
                     const newMessage = await response.json();
-                    
+
                     // Limpiar input
                     elements.messageInput.value = '';
                     elements.messageInput.style.height = 'auto';
                     buttons.send.disabled = true;
-                    
+
                     // Actualizar lista de chats
                     fetchChats();
                 } catch (error) {
                     console.error('Error al enviar mensaje:', error);
                 }
             }
-            
+
             // Eventos de entrada de mensaje
             elements.messageInput.addEventListener('input', function() {
                 buttons.send.disabled = !this.value.trim();
                 this.style.height = 'auto';
                 this.style.height = `${this.scrollHeight}px`;
+
+                if (!isTyping) {
+                    isTyping = true;
+                    socket.emit('typing', {
+                        sender_id: currentUserId,
+                        receiver_id: currentChatUser.id,
+                        is_typing: true
+                    });
+                }
+
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    isTyping = false;
+                    socket.emit('typing', {
+                        sender_id: currentUserId,
+                        receiver_id: currentChatUser.id,
+                        is_typing: false
+                    });
+                }, 1000);
             });
-            
+
             elements.messageInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     sendMessage();
                 }
             });
-            
+
             buttons.send.addEventListener('click', sendMessage);
-            
+
             // Eventos de Socket.IO
             socket.on('receive_message', (message) => {
                 if (currentChatUser && message.sender_id === currentChatUser.id) {
@@ -900,28 +926,27 @@
                     const isCurrentUser = message.sender_id === parseInt(currentUserId);
                     const messageElement = document.createElement('div');
                     messageElement.className = `message ${isCurrentUser ? 'sent' : 'received'}`;
-                    
+
                     messageElement.innerHTML = `
                         ${message.content}
                         <div class="message-time">
                             ${formatTime(message.timestamp)}
-                            ${isCurrentUser ? (message.read ? '✓✓' : '✓') : ''}
                         </div>
                     `;
-                    
+
                     elements.messagesContainer.appendChild(messageElement);
                     elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
-                    
+
                     // Marcar como leído si es un mensaje recibido
                     if (!isCurrentUser && !message.read) {
                         socket.emit('mark_as_read', { message_id: message.id });
                     }
                 }
-                
+
                 // Actualizar lista de chats
                 fetchChats();
             });
-            
+
             socket.on('user_status', (data) => {
                 // Actualizar estado en la lista de usuarios
                 const user = users.find(u => u.id === data.user_id);
@@ -929,17 +954,31 @@
                     user.online = data.online;
                     renderUserList();
                 }
-                
+
                 // Actualizar estado en el chat activo
                 if (currentChatUser && currentChatUser.id === data.user_id) {
                     currentChatUser.online = data.online;
                     elements.chatUserStatus.textContent = data.online ? 'En línea' : 'Desconectado';
                 }
-                
+
                 // Actualizar lista de chats
                 fetchChats();
             });
-            
+
+            socket.on('typing', (data) => {
+                if (currentChatUser && data.sender_id === currentChatUser.id) {
+                    elements.chatUserStatus.textContent = data.is_typing ? 'Escribiendo...' : 
+                        (currentChatUser.online ? 'En línea' : 'Desconectado');
+                    
+                    // Actualizar también en la lista de chats
+                    const chat = chats.find(c => c.participant.id === data.sender_id);
+                    if (chat) {
+                        chat.is_typing = data.is_typing;
+                        renderChatList();
+                    }
+                }
+            });
+
             // Inicialización
             updateProfileScreen();
             fetchChats();
