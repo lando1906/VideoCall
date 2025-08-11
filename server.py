@@ -299,14 +299,37 @@ def handle_mark_as_read(data):
         for msg in messages:
             msg.read = True
         db.session.commit()
+        # Notificar al remitente que sus mensajes fueron leídos
+        for msg in messages:
+            socketio.emit('messages_read', {
+                'message_ids': data['message_ids'],
+                'chat_id': f"{min(msg.sender_id, msg.receiver_id)}-{max(msg.sender_id, msg.receiver_id)}"
+            }, room=str(msg.sender_id))
 
 @socketio.on('typing')
 def handle_typing(data):
+    # Notificar al receptor que el remitente está escribiendo
     socketio.emit('typing', {
         'sender_id': data['sender_id'],
         'receiver_id': data['receiver_id'],
         'is_typing': data['is_typing']
-    }, room=data['receiver_id'])
+    }, room=str(data['receiver_id']))
+
+    # También actualizar la lista de chats del receptor
+    if data['is_typing']:
+        chat_id = f"{min(data['sender_id'], data['receiver_id'])}-{max(data['sender_id'], data['receiver_id'])}"
+        socketio.emit('update_chat_typing', {
+            'chat_id': chat_id,
+            'is_typing': True,
+            'sender_id': data['sender_id']
+        }, room=str(data['receiver_id']))
+    else:
+        chat_id = f"{min(data['sender_id'], data['receiver_id'])}-{max(data['sender_id'], data['receiver_id'])}"
+        socketio.emit('update_chat_typing', {
+            'chat_id': chat_id,
+            'is_typing': False,
+            'sender_id': data['sender_id']
+        }, room=str(data['receiver_id']))
 
 # Base de datos
 db_initialized = False
