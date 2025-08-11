@@ -288,10 +288,15 @@ def handle_mark_as_read(data):
             msg.read = True
         db.session.commit()
 
-# Inicialización
-@app.before_first_request
+# Base de datos
+db_initialized = False
+
+@app.before_request
 def create_tables():
-    db.create_all()
+    global db_initialized
+    if not db_initialized:
+        db.create_all()
+        db_initialized = True
 
 # Configuración para producción en Render
 if __name__ == '__main__':
