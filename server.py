@@ -1,5 +1,5 @@
 import os
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, render_template, redirect
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -11,8 +11,11 @@ from dotenv import load_dotenv
 # Cargar variables de entorno
 load_dotenv()
 
-# Configuración para Render
-app = Flask(__name__, static_folder='static')
+# Configuración de Flask
+app = Flask(__name__,
+            static_folder='static',
+            template_folder='templates')
+
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'secret-key-dev')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///database.db').replace('postgres://', 'postgresql://')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -67,6 +70,19 @@ def save_avatar(file):
         return unique_filename
     return None
 
+# Rutas de páginas
+@app.route('/')
+def home():
+    return redirect('/auth')
+
+@app.route('/auth')
+def auth_page():
+    return render_template('auth.html')
+
+@app.route('/chat')
+def chat_page():
+    return render_template('chat.html')
+
 # API Routes
 @app.route('/api/users')
 def get_users():
@@ -83,12 +99,10 @@ def get_users():
 @app.route('/api/chats')
 def get_chats():
     user_id = request.args.get('user_id')
-    # Implementación simplificada - en producción usarías una relación many-to-many
     messages = Message.query.filter(
         (Message.sender_id == user_id) | (Message.receiver_id == user_id)
     ).order_by(Message.timestamp.desc()).all()
-    
-    # Procesar para agrupar por chat
+
     chats = {}
     for msg in messages:
         other_user_id = msg.receiver_id if msg.sender_id == int(user_id) else msg.sender_id
@@ -105,29 +119,29 @@ def get_chats():
                     'online': user.online
                 }
             }
-        
+
         if not chats[other_user_id]['last_message']:
             chats[other_user_id]['last_message'] = {
                 'content': msg.content,
                 'timestamp': msg.timestamp.isoformat(),
                 'read': msg.read
             }
-        
+
         if not msg.read and msg.receiver_id == int(user_id):
             chats[other_user_id]['unread_count'] += 1
-    
+
     return jsonify(list(chats.values()))
 
 @app.route('/api/messages')
 def get_messages():
     chat_id = request.args.get('chat_id')
     user1_id, user2_id = map(int, chat_id.split('-'))
-    
+
     messages = Message.query.filter(
         ((Message.sender_id == user1_id) & (Message.receiver_id == user2_id)) |
         ((Message.sender_id == user2_id) & (Message.receiver_id == user1_id))
     ).order_by(Message.timestamp.asc()).all()
-    
+
     return jsonify([{
         'id': msg.id,
         'sender_id': msg.sender_id,
@@ -146,8 +160,7 @@ def create_message():
     )
     db.session.add(new_message)
     db.session.commit()
-    
-    # Emitir evento de Socket.IO
+
     socketio.emit('receive_message', {
         'id': new_message.id,
         'sender_id': new_message.sender_id,
@@ -156,40 +169,39 @@ def create_message():
         'timestamp': new_message.timestamp.isoformat(),
         'read': new_message.read
     })
-    
+
     return jsonify({'success': True, 'message_id': new_message.id})
 
 @app.route('/api/update_avatar', methods=['POST'])
 def update_avatar():
     if 'avatar' not in request.files:
         return jsonify({'success': False, 'error': 'No file uploaded'})
-    
+
     user_id = request.form.get('user_id')
     if not user_id:
         return jsonify({'success': False, 'error': 'User ID required'})
-    
+
     file = request.files['avatar']
     if file.filename == '':
         return jsonify({'success': False, 'error': 'No selected file'})
-    
+
     avatar_filename = save_avatar(file)
     if not avatar_filename:
         return jsonify({'success': False, 'error': 'Invalid file type'})
-    
+
     user = User.query.get(user_id)
     if user:
-        # Eliminar avatar anterior si existe
         if user.avatar:
             try:
                 os.remove(os.path.join(app.config['UPLOAD_FOLDER'], user.avatar))
             except OSError:
                 pass
-        
+
         user.avatar = avatar_filename
         db.session.commit()
-        
+
         return jsonify({'success': True, 'avatar': avatar_filename})
-    
+
     return jsonify({'success': False, 'error': 'User not found'})
 
 # Auth Routes
@@ -197,7 +209,7 @@ def update_avatar():
 def login():
     data = request.form
     user = User.query.filter_by(username=data['username']).first()
-    
+
     if user and user.check_password(data['password']):
         user.online = True
         user.last_seen = datetime.utcnow()
@@ -209,31 +221,31 @@ def login():
             'display_name': user.display_name,
             'avatar': user.avatar
         })
-    
+
     return jsonify({'success': False, 'error': 'Invalid credentials'})
 
 @app.route('/register', methods=['POST'])
 def register():
     if 'username' not in request.form or 'password' not in request.form:
         return jsonify({'success': False, 'error': 'Missing required fields'})
-    
+
     if User.query.filter_by(username=request.form['username']).first():
         return jsonify({'success': False, 'error': 'Username already exists'})
-    
+
     new_user = User(
         username=request.form['username'],
         display_name=request.form.get('display_name', request.form['username'])
     )
     new_user.set_password(request.form['password'])
-    
+
     if 'avatar' in request.files:
         avatar_filename = save_avatar(request.files['avatar'])
         if avatar_filename:
             new_user.avatar = avatar_filename
-    
+
     db.session.add(new_user)
     db.session.commit()
-    
+
     return jsonify({
         'success': True,
         'user_id': new_user.id,
@@ -298,7 +310,6 @@ def create_tables():
         db.create_all()
         db_initialized = True
 
-# Configuración para producción en Render
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     socketio.run(app, host='0.0.0.0', port=port)
