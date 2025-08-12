@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 import uuid
 from datetime import datetime
 from dotenv import load_dotenv
+from math import ceil
 
 # Cargar variables de entorno
 load_dotenv()
@@ -19,6 +20,13 @@ app = Flask(__name__,
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'secret-key-dev')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///database.db').replace('postgres://', 'postgresql://')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_size': 15,
+    'max_overflow': 30,
+    'pool_recycle': 300,
+    'pool_timeout': 30
+}
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024  # 2MB max para avatares
@@ -28,7 +36,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Inicializar extensiones
 db = SQLAlchemy(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
 # Modelos
 class User(db.Model):
@@ -39,6 +47,7 @@ class User(db.Model):
     avatar = db.Column(db.String(120))
     online = db.Column(db.Boolean, default=False)
     last_seen = db.Column(db.DateTime)
+    socket_id = db.Column(db.String(120))
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -99,12 +108,19 @@ def get_users():
 @app.route('/api/chats')
 def get_chats():
     user_id = request.args.get('user_id')
-    messages = Message.query.filter(
-        (Message.sender_id == user_id) | (Message.receiver_id == user_id)
-    ).order_by(Message.timestamp.desc()).all()
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 20))
 
+    # Consulta base para mensajes
+    messages_query = Message.query.filter(
+        (Message.sender_id == user_id) | (Message.receiver_id == user_id)
+    
+    # Paginación
+    messages_paginated = messages_query.order_by(
+        Message.timestamp.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    
     chats = {}
-    for msg in messages:
+    for msg in messages_paginated.items:
         other_user_id = msg.receiver_id if msg.sender_id == int(user_id) else msg.sender_id
         if other_user_id not in chats:
             user = User.query.get(other_user_id)
@@ -130,25 +146,57 @@ def get_chats():
         if not msg.read and msg.receiver_id == int(user_id):
             chats[other_user_id]['unread_count'] += 1
 
-    return jsonify(list(chats.values()))
+    return jsonify({
+        'chats': list(chats.values()),
+        'pagination': {
+            'page': page,
+            'per_page': per_page,
+            'total_pages': messages_paginated.pages,
+            'total_items': messages_paginated.total
+        }
+    })
 
 @app.route('/api/messages')
 def get_messages():
     chat_id = request.args.get('chat_id')
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 50))
     user1_id, user2_id = map(int, chat_id.split('-'))
 
-    messages = Message.query.filter(
+    messages_query = Message.query.filter(
         ((Message.sender_id == user1_id) & (Message.receiver_id == user2_id)) |
         ((Message.sender_id == user2_id) & (Message.receiver_id == user1_id))
-    ).order_by(Message.timestamp.asc()).all()
+    ).order_by(Message.timestamp.desc())
 
-    return jsonify([{
-        'id': msg.id,
-        'sender_id': msg.sender_id,
-        'content': msg.content,
-        'timestamp': msg.timestamp.isoformat(),
-        'read': msg.read
-    } for msg in messages])
+    messages_paginated = messages_query.paginate(page=page, per_page=per_page, error_out=False)
+
+    # Marcar mensajes como leídos si es la primera página
+    if page == 1:
+        unread_messages = Message.query.filter(
+            Message.receiver_id == int(request.args.get('current_user_id')),
+            Message.sender_id == (user1_id if user1_id != int(request.args.get('current_user_id')) else user2_id),
+            Message.read == False
+        ).all()
+        
+        for msg in unread_messages:
+            msg.read = True
+        db.session.commit()
+
+    return jsonify({
+        'messages': [{
+            'id': msg.id,
+            'sender_id': msg.sender_id,
+            'content': msg.content,
+            'timestamp': msg.timestamp.isoformat(),
+            'read': msg.read
+        } for msg in messages_paginated.items],
+        'pagination': {
+            'page': page,
+            'per_page': per_page,
+            'total_pages': messages_paginated.pages,
+            'total_items': messages_paginated.total
+        }
+    })
 
 @app.route('/api/messages', methods=['POST'])
 def create_message():
@@ -161,14 +209,23 @@ def create_message():
     db.session.add(new_message)
     db.session.commit()
 
-    socketio.emit('receive_message', {
-        'id': new_message.id,
-        'sender_id': new_message.sender_id,
-        'receiver_id': new_message.receiver_id,
-        'content': new_message.content,
-        'timestamp': new_message.timestamp.isoformat(),
-        'read': new_message.read
-    }, room=str(new_message.receiver_id))
+    # Obtener el socket_id del receptor
+    receiver = User.query.get(data['receiver_id'])
+    if receiver and receiver.socket_id:
+        socketio.emit('receive_message', {
+            'id': new_message.id,
+            'sender_id': new_message.sender_id,
+            'receiver_id': new_message.receiver_id,
+            'content': new_message.content,
+            'timestamp': new_message.timestamp.isoformat(),
+            'read': new_message.read
+        }, room=receiver.socket_id)
+
+    # Actualizar lista de chats para ambos usuarios
+    socketio.emit('update_chats', {
+        'user_id': data['sender_id'],
+        'other_user_id': data['receiver_id']
+    }, broadcast=True)
 
     return jsonify({'success': True, 'message_id': new_message.id})
 
@@ -199,6 +256,12 @@ def update_avatar():
 
         user.avatar = avatar_filename
         db.session.commit()
+
+        # Notificar a todos los clientes sobre el cambio de avatar
+        socketio.emit('avatar_updated', {
+            'user_id': user.id,
+            'avatar': avatar_filename
+        }, broadcast=True)
 
         return jsonify({'success': True, 'avatar': avatar_filename})
 
@@ -271,26 +334,35 @@ def handle_connect():
         user = User.query.get(user_id)
         if user:
             user.online = True
+            user.socket_id = request.sid
             user.last_seen = datetime.utcnow()
             db.session.commit()
+            
+            # Notificar a todos los usuarios conectados
             socketio.emit('user_status', {
                 'user_id': user.id,
                 'online': True
             }, broadcast=True)
 
+            # Actualizar chats del usuario
+            socketio.emit('update_chats', {
+                'user_id': user.id
+            }, room=request.sid)
+
 @socketio.on('disconnect')
 def handle_disconnect():
-    user_id = request.args.get('user_id')
-    if user_id:
-        user = User.query.get(user_id)
-        if user:
-            user.online = False
-            user.last_seen = datetime.utcnow()
-            db.session.commit()
-            socketio.emit('user_status', {
-                'user_id': user.id,
-                'online': False
-            }, broadcast=True)
+    user = User.query.filter_by(socket_id=request.sid).first()
+    if user:
+        user.online = False
+        user.socket_id = None
+        user.last_seen = datetime.utcnow()
+        db.session.commit()
+        
+        # Notificar a todos los usuarios conectados
+        socketio.emit('user_status', {
+            'user_id': user.id,
+            'online': False
+        }, broadcast=True)
 
 @socketio.on('mark_as_read')
 def handle_mark_as_read(data):
@@ -299,37 +371,25 @@ def handle_mark_as_read(data):
         for msg in messages:
             msg.read = True
         db.session.commit()
+        
         # Notificar al remitente que sus mensajes fueron leídos
         for msg in messages:
-            socketio.emit('messages_read', {
-                'message_ids': data['message_ids'],
-                'chat_id': f"{min(msg.sender_id, msg.receiver_id)}-{max(msg.sender_id, msg.receiver_id)}"
-            }, room=str(msg.sender_id))
+            sender = User.query.get(msg.sender_id)
+            if sender and sender.socket_id:
+                socketio.emit('messages_read', {
+                    'message_ids': data['message_ids'],
+                    'chat_id': f"{min(msg.sender_id, msg.receiver_id)}-{max(msg.sender_id, msg.receiver_id)}"
+                }, room=sender.socket_id)
 
 @socketio.on('typing')
 def handle_typing(data):
-    # Notificar al receptor que el remitente está escribiendo
-    socketio.emit('typing', {
-        'sender_id': data['sender_id'],
-        'receiver_id': data['receiver_id'],
-        'is_typing': data['is_typing']
-    }, room=str(data['receiver_id']))
-
-    # También actualizar la lista de chats del receptor
-    if data['is_typing']:
-        chat_id = f"{min(data['sender_id'], data['receiver_id'])}-{max(data['sender_id'], data['receiver_id'])}"
-        socketio.emit('update_chat_typing', {
-            'chat_id': chat_id,
-            'is_typing': True,
-            'sender_id': data['sender_id']
-        }, room=str(data['receiver_id']))
-    else:
-        chat_id = f"{min(data['sender_id'], data['receiver_id'])}-{max(data['sender_id'], data['receiver_id'])}"
-        socketio.emit('update_chat_typing', {
-            'chat_id': chat_id,
-            'is_typing': False,
-            'sender_id': data['sender_id']
-        }, room=str(data['receiver_id']))
+    receiver = User.query.get(data['receiver_id'])
+    if receiver and receiver.socket_id:
+        socketio.emit('typing', {
+            'sender_id': data['sender_id'],
+            'receiver_id': data['receiver_id'],
+            'is_typing': data['is_typing']
+        }, room=receiver.socket_id)
 
 # Base de datos
 db_initialized = False
