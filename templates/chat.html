@@ -17,24 +17,20 @@
             --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             --transition: all 0.3s ease;
         }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             font-family: 'Inter', sans-serif;
         }
-
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
             transition: var(--transition);
         }
-
         .hidden {
             display: none !important;
         }
-
         /* Estructura principal */
         .screen {
             position: fixed;
@@ -47,7 +43,6 @@
             background-color: var(--bg-color);
             overflow: hidden;
         }
-
         /* Cabecera común */
         .header {
             display: flex;
@@ -57,13 +52,11 @@
             box-shadow: var(--shadow);
             z-index: 10;
         }
-
         .header-title {
             font-size: 1.1rem;
             font-weight: 600;
             flex: 1;
         }
-
         /* Botones de icono */
         .icon-button {
             width: 40px;
@@ -78,11 +71,9 @@
             transition: var(--transition);
             margin-right: 8px;
         }
-
         .icon-button:hover {
             background-color: var(--border-color);
         }
-
         .icon-button svg {
             width: 24px;
             height: 24px;
@@ -92,36 +83,18 @@
             stroke-linejoin: round;
             fill: none;
         }
-
-        /* Mini avatar */
-        .mini-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background-color: var(--border-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: var(--primary-color);
-            font-weight: 500;
-            background-size: cover;
-            background-position: center;
-        }
-
         /* Área de contenido */
         .content {
             flex: 1;
             overflow-y: auto;
             padding: 16px;
         }
-
         /* Lista de chats */
         .chat-list {
             display: flex;
             flex-direction: column;
             gap: 12px;
         }
-
         .chat-item {
             display: flex;
             align-items: center;
@@ -133,12 +106,10 @@
             cursor: pointer;
             transition: var(--transition);
         }
-
         .chat-item:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
         }
-
         /* Avatares */
         .avatar {
             width: 44px;
@@ -156,7 +127,6 @@
             position: relative;
             margin-right: 12px;
         }
-
         .status-dot {
             width: 12px;
             height: 12px;
@@ -166,33 +136,27 @@
             right: 0;
             border: 2px solid var(--card-bg);
         }
-
         .online {
             background-color: var(--accent-color);
         }
-
         .offline {
             background-color: #9ca3af;
         }
-
         /* Info del chat */
         .chat-info {
             flex: 1;
         }
-
         .chat-name {
             font-weight: 500;
             font-size: 1rem;
             margin-bottom: 4px;
         }
-
         .chat-last-message {
             font-size: 0.8rem;
             color: #6b7280;
             position: relative;
             padding-right: 40px;
         }
-
         .chat-time {
             position: absolute;
             right: 0;
@@ -200,7 +164,6 @@
             font-size: 0.7rem;
             color: #9ca3af;
         }
-
         .unread-count {
             background-color: var(--primary-color);
             color: white;
@@ -213,7 +176,6 @@
             right: 4px;
             top: -5px;
         }
-
         /* Botón flotante */
         .floating-button {
             position: fixed;
@@ -233,25 +195,21 @@
             z-index: 100;
             transition: var(--transition);
         }
-
         .floating-button:hover {
             transform: scale(1.1);
         }
-
         .floating-button svg {
             width: 24px;
             height: 24px;
             stroke: white;
             stroke-width: 2;
         }
-
         /* Pantalla de conversación */
         .conversation {
             display: flex;
             flex-direction: column;
             height: calc(100vh - 64px);
         }
-
         .messages {
             flex: 1;
             overflow-y: auto;
@@ -260,7 +218,15 @@
             flex-direction: column;
             gap: 12px;
         }
-
+        .message-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            margin-bottom: 4px;
+        }
+        .message-container.received {
+            align-items: flex-start;
+        }
         .message {
             max-width: 75%;
             padding: 10px 14px;
@@ -268,33 +234,51 @@
             font-size: 0.9rem;
             line-height: 1.4;
             position: relative;
+            display: inline-block;
         }
-
         .received {
             align-self: flex-start;
             background-color: var(--border-color);
             color: var(--text-color);
             border-bottom-left-radius: 4px;
         }
-
         .sent {
             align-self: flex-end;
             background-color: var(--primary-color);
             color: white;
             border-bottom-right-radius: 4px;
         }
-
+        .message-info {
+            display: flex;
+            align-items: center;
+            margin-top: 4px;
+            gap: 4px;
+        }
         .message-time {
             font-size: 0.7rem;
             color: rgba(255, 255, 255, 0.7);
-            margin-top: 4px;
-            text-align: right;
         }
-
         .received .message-time {
             color: #9ca3af;
         }
-
+        .status-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .status-indicator svg {
+            width: 12px;
+            height: 12px;
+        }
+        .status-indicator img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
         /* Área de entrada */
         .input-area {
             padding: 12px;
@@ -304,7 +288,6 @@
             align-items: center;
             gap: 8px;
         }
-
         .message-input {
             flex: 1;
             padding: 10px 14px;
@@ -318,11 +301,9 @@
             background-color: var(--card-bg);
             color: var(--text-color);
         }
-
         .message-input:focus {
             border-color: var(--primary-color);
         }
-
         .send-button {
             width: 40px;
             height: 40px;
@@ -335,23 +316,19 @@
             cursor: pointer;
             transition: var(--transition);
         }
-
         .send-button:hover {
             background-color: var(--secondary-color);
         }
-
         .send-button:disabled {
             background-color: #9ca3af;
             cursor: not-allowed;
         }
-
         .send-button svg {
             width: 18px;
             height: 18px;
             stroke: white;
             stroke-width: 2;
         }
-
         /* Pantallas de perfil */
         .profile-container {
             background-color: var(--card-bg);
@@ -363,7 +340,6 @@
             flex-direction: column;
             align-items: center;
         }
-
         .profile-avatar {
             width: 120px;
             height: 120px;
@@ -380,7 +356,6 @@
             position: relative;
             margin-bottom: 24px;
         }
-
         .profile-avatar-camera {
             position: absolute;
             bottom: -8px;
@@ -395,39 +370,32 @@
             cursor: pointer;
             z-index: 2;
         }
-
         .profile-avatar-camera:hover {
             background-color: var(--secondary-color);
         }
-
         .profile-avatar-camera svg {
             width: 18px;
             height: 18px;
             stroke: white;
             stroke-width: 2;
         }
-
         .profile-name {
             font-size: 1.5rem;
             font-weight: 600;
             margin-bottom: 16px;
         }
-
         /* Scroll personalizado */
         .messages::-webkit-scrollbar {
             width: 6px;
         }
-
         .messages::-webkit-scrollbar-track {
             background: var(--border-color);
             border-radius: 3px;
         }
-
         .messages::-webkit-scrollbar-thumb {
             background: var(--primary-color);
             border-radius: 3px;
         }
-
         /* Responsive */
         @media (min-width: 600px) {
             .profile-avatar {
@@ -435,7 +403,6 @@
                 height: 160px;
                 font-size: 3.5rem;
             }
-
             .profile-name {
                 font-size: 2rem;
             }
@@ -448,23 +415,20 @@
         <div class="header">
             <h1 class="header-title">Conversaciones</h1>
             <button id="profile-button" class="icon-button" aria-label="Mi perfil">
-                <div class="mini-avatar" id="profile-mini-avatar"></div>
+                <div id="profile-avatar-button" class="avatar"></div>
             </button>
         </div>
-
         <div class="content">
             <div id="chat-list" class="chat-list">
                 <!-- Los chats se cargarán aquí -->
             </div>
         </div>
-
         <button id="new-chat-button" class="floating-button" aria-label="Nuevo chat">
             <svg viewBox="0 0 24 24">
                 <path d="M12 5v14M5 12h14"/>
             </svg>
         </button>
     </div>
-
     <!-- Pantalla de usuarios -->
     <div id="users-screen" class="screen hidden">
         <div class="header">
@@ -475,14 +439,12 @@
             </button>
             <h1 class="header-title">Nuevo chat</h1>
         </div>
-
         <div class="content">
             <div id="user-list" class="chat-list">
                 <!-- Los usuarios se cargarán aquí -->
             </div>
         </div>
     </div>
-
     <!-- Pantalla de conversación -->
     <div id="chat-screen" class="screen hidden">
         <div class="header">
@@ -499,12 +461,10 @@
                 </div>
             </div>
         </div>
-
         <div class="conversation">
             <div id="messages-container" class="messages">
                 <!-- Los mensajes se cargarán aquí -->
             </div>
-
             <div class="input-area">
                 <textarea id="message-input" class="message-input" placeholder="Escribe un mensaje..." rows="1"></textarea>
                 <button id="send-button" class="send-button" disabled aria-label="Enviar">
@@ -515,7 +475,6 @@
             </div>
         </div>
     </div>
-
     <!-- Pantalla de mi perfil -->
     <div id="profile-screen" class="screen hidden">
         <div class="header">
@@ -526,7 +485,6 @@
             </button>
             <h1 class="header-title">Mi perfil</h1>
         </div>
-
         <div class="content">
             <div class="profile-container">
                 <div class="profile-avatar" id="profile-big-avatar">
@@ -541,7 +499,6 @@
             </div>
         </div>
     </div>
-
     <!-- Pantalla de perfil de usuario -->
     <div id="user-profile-screen" class="screen hidden">
         <div class="header">
@@ -552,7 +509,6 @@
             </button>
             <h1 class="header-title">Perfil</h1>
         </div>
-
         <div class="content">
             <div class="profile-container">
                 <div class="profile-avatar" id="user-profile-avatar">
@@ -562,14 +518,12 @@
             </div>
         </div>
     </div>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Obtener ID de usuario de la URL
             const urlParams = new URLSearchParams(window.location.search);
             const currentUserId = urlParams.get('user_id');
-
             // Datos del usuario actual
             const currentUser = {
                 id: currentUserId,
@@ -577,7 +531,6 @@
                 displayName: sessionStorage.getItem('display_name') || 'Usuario',
                 avatar: sessionStorage.getItem('avatar')
             };
-
             // Elementos del DOM
             const screens = {
                 chats: document.getElementById('chats-screen'),
@@ -586,7 +539,6 @@
                 profile: document.getElementById('profile-screen'),
                 userProfile: document.getElementById('user-profile-screen')
             };
-
             const buttons = {
                 newChat: document.getElementById('new-chat-button'),
                 back: document.getElementById('back-button'),
@@ -597,7 +549,6 @@
                 send: document.getElementById('send-button'),
                 changeAvatar: document.getElementById('change-avatar-button')
             };
-
             const elements = {
                 chatList: document.getElementById('chat-list'),
                 userList: document.getElementById('user-list'),
@@ -608,12 +559,11 @@
                 chatUserStatus: document.getElementById('chat-user-status'),
                 profileBigAvatar: document.getElementById('profile-big-avatar'),
                 profileDisplayName: document.getElementById('profile-display-name'),
-                profileMiniAvatar: document.getElementById('profile-mini-avatar'),
                 userProfileAvatar: document.getElementById('user-profile-avatar'),
                 userProfileName: document.getElementById('user-profile-name'),
-                userProfileStatus: document.getElementById('user-profile-status')
+                userProfileStatus: document.getElementById('user-profile-status'),
+                profileAvatarButton: document.getElementById('profile-avatar-button')
             };
-
             // Estado de la aplicación
             let currentChat = null;
             let currentChatUser = null;
@@ -624,66 +574,23 @@
             let isLoadingMessages = false;
             let allMessagesLoaded = false;
             let currentPage = 1;
-
+            let messageStatuses = {};
             // Conexión Socket.IO
             const socket = io({
                 query: {
                     user_id: currentUserId
-                },
-                reconnection: true,
-                reconnectionAttempts: 5,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000
+                }
             });
-
             // Mostrar pantalla
             function showScreen(screen) {
                 Object.values(screens).forEach(s => s.classList.add('hidden'));
                 screen.classList.remove('hidden');
             }
-
-            // Formatear hora local
-            function formatTime(timestamp) {
-                const date = new Date(timestamp);
-                return date.toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                });
-            }
-
-            // Actualizar mini avatar
-            function updateMiniAvatar() {
-                if (currentUser.avatar) {
-                    elements.profileMiniAvatar.style.backgroundImage = `url('/uploads/${currentUser.avatar}')`;
-                    elements.profileMiniAvatar.textContent = '';
-                } else {
-                    elements.profileMiniAvatar.textContent = currentUser.displayName.substring(0, 1).toUpperCase();
-                    elements.profileMiniAvatar.style.backgroundImage = '';
-                }
-            }
-
-            // Actualizar pantalla de perfil
-            function updateProfileScreen() {
-                elements.profileDisplayName.textContent = currentUser.displayName;
-
-                if (currentUser.avatar) {
-                    elements.profileBigAvatar.style.backgroundImage = `url('/uploads/${currentUser.avatar}')`;
-                    elements.profileBigAvatar.textContent = '';
-                } else {
-                    elements.profileBigAvatar.textContent = currentUser.displayName.substring(0, 1).toUpperCase();
-                    elements.profileBigAvatar.style.backgroundImage = '';
-                }
-
-                updateMiniAvatar();
-            }
-
             // Navegación
             buttons.newChat.addEventListener('click', () => {
                 fetchUsers();
                 showScreen(screens.users);
             });
-
             buttons.back.addEventListener('click', () => showScreen(screens.chats));
             buttons.backChat.addEventListener('click', () => showScreen(screens.chats));
             buttons.backProfile.addEventListener('click', () => showScreen(screens.chats));
@@ -694,65 +601,60 @@
                     showScreen(screens.users);
                 }
             });
-
             buttons.profile.addEventListener('click', () => {
                 updateProfileScreen();
                 showScreen(screens.profile);
             });
-
+            // Actualizar pantalla de perfil
+            function updateProfileScreen() {
+                elements.profileDisplayName.textContent = currentUser.displayName;
+                if (currentUser.avatar) {
+                    elements.profileBigAvatar.style.backgroundImage = `url('/uploads/${currentUser.avatar}')`;
+                    elements.profileBigAvatar.textContent = '';
+                    elements.profileAvatarButton.style.backgroundImage = `url('/uploads/${currentUser.avatar}')`;
+                    elements.profileAvatarButton.textContent = '';
+                } else {
+                    const avatarText = currentUser.displayName.substring(0, 1).toUpperCase();
+                    elements.profileBigAvatar.textContent = avatarText;
+                    elements.profileBigAvatar.style.backgroundImage = '';
+                    elements.profileAvatarButton.textContent = avatarText;
+                    elements.profileAvatarButton.style.backgroundImage = '';
+                }
+            }
             // Cambiar avatar
             buttons.changeAvatar.addEventListener('click', () => {
                 const input = document.createElement('input');
                 input.type = 'file';
-                input.accept = 'image/png, image/jpeg, image/gif';
-                
+                input.accept = 'image/*';
                 input.onchange = async (e) => {
                     const file = e.target.files[0];
                     if (file) {
-                        // Verificar tamaño del archivo (máximo 2MB)
-                        if (file.size > 2 * 1024 * 1024) {
-                            alert('La imagen debe ser menor a 2MB');
-                            return;
-                        }
-                        
                         const formData = new FormData();
                         formData.append('avatar', file);
                         formData.append('user_id', currentUserId);
-
                         try {
-                            buttons.changeAvatar.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>';
-                            
                             const response = await fetch('/api/update_avatar', {
                                 method: 'POST',
                                 body: formData
                             });
-
                             const result = await response.json();
                             if (result.success) {
                                 currentUser.avatar = result.avatar;
                                 sessionStorage.setItem('avatar', result.avatar);
                                 updateProfileScreen();
-
                                 // Actualizar avatar en todas las vistas
                                 if (currentChatUser) {
                                     elements.chatUserAvatar.style.backgroundImage = `url('/uploads/${result.avatar}')`;
                                     elements.chatUserAvatar.textContent = '';
                                 }
-                            } else {
-                                alert(result.error || 'Error al actualizar el avatar');
                             }
                         } catch (error) {
                             console.error('Error al actualizar el avatar:', error);
-                            alert('Error al conectar con el servidor');
-                        } finally {
-                            buttons.changeAvatar.innerHTML = '<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>';
                         }
                     }
                 };
-
                 input.click();
             });
-
             // Cargar usuarios
             async function fetchUsers() {
                 try {
@@ -763,11 +665,9 @@
                     console.error('Error al cargar usuarios:', error);
                 }
             }
-
             // Renderizar lista de usuarios
             function renderUserList() {
                 elements.userList.innerHTML = '';
-
                 users.forEach(user => {
                     const userElement = document.createElement('div');
                     userElement.className = 'chat-item';
@@ -782,12 +682,10 @@
                             <div class="chat-last-message">${user.online ? 'En línea' : 'Desconectado'}</div>
                         </div>
                     `;
-
                     userElement.addEventListener('click', () => openChat(user));
                     elements.userList.appendChild(userElement);
                 });
             }
-
             // Cargar chats
             async function fetchChats() {
                 try {
@@ -799,11 +697,9 @@
                     console.error('Error al cargar chats:', error);
                 }
             }
-
             // Renderizar lista de chats
             function renderChatList() {
                 elements.chatList.innerHTML = '';
-
                 chats.forEach(chat => {
                     const otherUser = chat.participant;
                     const chatElement = document.createElement('div');
@@ -823,23 +719,24 @@
                             </div>
                         </div>
                     `;
-
                     chatElement.addEventListener('click', () => openChat(otherUser, chat.id));
                     elements.chatList.appendChild(chatElement);
                 });
             }
-
+            // Formatear hora
+            function formatTime(timestamp) {
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
             // Abrir chat
             async function openChat(user, chatId = null) {
                 currentChatUser = user;
                 currentChat = chatId || `${Math.min(currentUserId, user.id)}-${Math.max(currentUserId, user.id)}`;
                 currentPage = 1;
                 allMessagesLoaded = false;
-
                 // Actualizar cabecera del chat
                 elements.chatUserName.textContent = user.display_name;
                 elements.chatUserStatus.textContent = user.online ? 'En línea' : 'Desconectado';
-
                 if (user.avatar) {
                     elements.chatUserAvatar.style.backgroundImage = `url('/uploads/${user.avatar}')`;
                     elements.chatUserAvatar.textContent = '';
@@ -847,31 +744,23 @@
                     elements.chatUserAvatar.textContent = user.display_name.substring(0, 1).toUpperCase();
                     elements.chatUserAvatar.style.backgroundImage = '';
                 }
-
                 // Cargar mensajes
                 await fetchMessages(currentChat);
-
                 showScreen(screens.chat);
             }
-
             // Cargar más mensajes al hacer scroll
             elements.messagesContainer.addEventListener('scroll', async function() {
                 if (isLoadingMessages || allMessagesLoaded) return;
-
                 if (this.scrollTop === 0) {
                     isLoadingMessages = true;
                     currentPage++;
-
                     try {
                         const response = await fetch(`/api/messages?chat_id=${currentChat}&page=${currentPage}&current_user_id=${currentUserId}`);
                         const data = await response.json();
-
                         if (data.messages.length > 0) {
                             const scrollHeightBefore = this.scrollHeight;
                             const scrollTopBefore = this.scrollTop;
-
                             renderMessages(data.messages.reverse(), true);
-
                             const scrollHeightAfter = this.scrollHeight;
                             this.scrollTop = scrollTopBefore + (scrollHeightAfter - scrollHeightBefore);
                         } else {
@@ -884,44 +773,84 @@
                     }
                 }
             });
-
             // Cargar mensajes
             async function fetchMessages(chatId) {
                 try {
                     const response = await fetch(`/api/messages?chat_id=${chatId}&page=1&current_user_id=${currentUserId}`);
                     const data = await response.json();
                     renderMessages(data.messages);
-
                     // Actualizar lista de chats para ocultar notificaciones
                     fetchChats();
                 } catch (error) {
                     console.error('Error al cargar mensajes:', error);
                 }
             }
-
             // Renderizar mensajes
             function renderMessages(messages, prepend = false) {
                 if (!prepend) {
                     elements.messagesContainer.innerHTML = '';
                 }
-
                 const fragment = document.createDocumentFragment();
-
                 messages.forEach(message => {
                     const isCurrentUser = message.sender_id === parseInt(currentUserId);
                     const messageElement = document.createElement('div');
-                    messageElement.className = `message ${isCurrentUser ? 'sent' : 'received'}`;
-
-                    messageElement.innerHTML = `
-                        ${message.content}
-                        <div class="message-time">
-                            ${formatTime(message.timestamp)}
-                        </div>
-                    `;
-
+                    messageElement.className = 'message-container';
+                    if (!isCurrentUser) {
+                        messageElement.classList.add('received');
+                    }
+                    
+                    const statusIndicator = document.createElement('div');
+                    statusIndicator.className = 'status-indicator';
+                    
+                    // Determinar el estado del mensaje
+                    if (isCurrentUser) {
+                        if (message.read) {
+                            // Visto - mostrar avatar del receptor
+                            if (currentChatUser.avatar) {
+                                statusIndicator.innerHTML = `<img src="/uploads/${currentChatUser.avatar}" alt="Visto">`;
+                            } else {
+                                statusIndicator.innerHTML = `<div class="avatar" style="width: 16px; height: 16px; font-size: 0.7rem;">${currentChatUser.display_name.substring(0, 1).toUpperCase()}</div>`;
+                            }
+                        } else if (message.delivered) {
+                            // Entregado
+                            statusIndicator.innerHTML = `
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M4 8L6 10L10 6" stroke="#0084FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M7 8L9 10L13 6" stroke="#0084FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            `;
+                        } else {
+                            // Enviado
+                            statusIndicator.innerHTML = `
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M5 8L7 10L11 6" stroke="#0084FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            `;
+                        }
+                    } else {
+                        // Para mensajes recibidos, no mostramos indicador de estado
+                        statusIndicator.style.visibility = 'hidden';
+                        statusIndicator.innerHTML = '&nbsp;';
+                    }
+                    
+                    const messageTime = document.createElement('div');
+                    messageTime.className = 'message-time';
+                    messageTime.textContent = formatTime(message.timestamp);
+                    
+                    const messageInfo = document.createElement('div');
+                    messageInfo.className = 'message-info';
+                    messageInfo.appendChild(messageTime);
+                    messageInfo.appendChild(statusIndicator);
+                    
+                    const messageContent = document.createElement('div');
+                    messageContent.className = `message ${isCurrentUser ? 'sent' : 'received'}`;
+                    messageContent.textContent = message.content;
+                    
+                    messageElement.appendChild(messageContent);
+                    messageElement.appendChild(messageInfo);
+                    
                     fragment.appendChild(messageElement);
                 });
-
                 if (prepend) {
                     elements.messagesContainer.insertBefore(fragment, elements.messagesContainer.firstChild);
                 } else {
@@ -929,12 +858,10 @@
                     elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
                 }
             }
-
             // Enviar mensaje
             async function sendMessage() {
                 const messageText = elements.messageInput.value.trim();
                 if (!messageText || !currentChatUser) return;
-
                 try {
                     const response = await fetch('/api/messages', {
                         method: 'POST',
@@ -947,28 +874,26 @@
                             content: messageText
                         })
                     });
-
-                    const newMessage = await response.json();
-
-                    // Limpiar input
-                    elements.messageInput.value = '';
-                    elements.messageInput.style.height = 'auto';
-                    buttons.send.disabled = true;
-
-                    // Actualizar lista de chats
-                    fetchChats();
+                    const result = await response.json();
+                    if (result.success) {
+                        // Limpiar input
+                        elements.messageInput.value = '';
+                        elements.messageInput.style.height = 'auto';
+                        buttons.send.disabled = true;
+                        
+                        // Actualizar lista de chats
+                        fetchChats();
+                    }
                 } catch (error) {
                     console.error('Error al enviar mensaje:', error);
                 }
             }
-
             // Eventos de entrada de mensaje
             elements.messageInput.addEventListener('input', function() {
                 buttons.send.disabled = !this.value.trim();
                 this.style.height = 'auto';
                 this.style.height = `${this.scrollHeight}px`;
-
-                if (!isTyping && currentChatUser) {
+                if (!isTyping) {
                     isTyping = true;
                     socket.emit('typing', {
                         sender_id: currentUserId,
@@ -976,59 +901,90 @@
                         is_typing: true
                     });
                 }
-
                 clearTimeout(typingTimeout);
                 typingTimeout = setTimeout(() => {
                     isTyping = false;
-                    if (currentChatUser) {
-                        socket.emit('typing', {
-                            sender_id: currentUserId,
-                            receiver_id: currentChatUser.id,
-                            is_typing: false
-                        });
-                    }
+                    socket.emit('typing', {
+                        sender_id: currentUserId,
+                        receiver_id: currentChatUser.id,
+                        is_typing: false
+                    });
                 }, 1000);
             });
-
             elements.messageInput.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     sendMessage();
                 }
             });
-
             buttons.send.addEventListener('click', sendMessage);
-
             // Eventos de Socket.IO
             socket.on('receive_message', (message) => {
-                // Actualizar lista de chats primero
-                fetchChats();
-                
-                if (currentChatUser && (message.sender_id === currentChatUser.id || message.sender_id === parseInt(currentUserId))) {
+                if (currentChatUser && message.sender_id === currentChatUser.id) {
                     // Si estamos en el chat correcto, mostrar el mensaje
                     const isCurrentUser = message.sender_id === parseInt(currentUserId);
                     const messageElement = document.createElement('div');
-                    messageElement.className = `message ${isCurrentUser ? 'sent' : 'received'}`;
-
-                    messageElement.innerHTML = `
-                        ${message.content}
-                        <div class="message-time">
-                            ${formatTime(message.timestamp)}
-                        </div>
-                    `;
-
+                    messageElement.className = 'message-container';
+                    if (!isCurrentUser) {
+                        messageElement.classList.add('received');
+                    }
+                    
+                    const statusIndicator = document.createElement('div');
+                    statusIndicator.className = 'status-indicator';
+                    
+                    // Determinar el estado del mensaje
+                    if (isCurrentUser) {
+                        if (message.read) {
+                            // Visto - mostrar avatar del receptor
+                            if (currentChatUser.avatar) {
+                                statusIndicator.innerHTML = `<img src="/uploads/${currentChatUser.avatar}" alt="Visto">`;
+                            } else {
+                                statusIndicator.innerHTML = `<div class="avatar" style="width: 16px; height: 16px; font-size: 0.7rem;">${currentChatUser.display_name.substring(0, 1).toUpperCase()}</div>`;
+                            }
+                        } else if (message.delivered) {
+                            // Entregado
+                            statusIndicator.innerHTML = `
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M4 8L6 10L10 6" stroke="#0084FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M7 8L9 10L13 6" stroke="#0084FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            `;
+                        } else {
+                            // Enviado
+                            statusIndicator.innerHTML = `
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M5 8L7 10L11 6" stroke="#0084FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            `;
+                        }
+                    } else {
+                        // Para mensajes recibidos, no mostramos indicador de estado
+                        statusIndicator.style.visibility = 'hidden';
+                        statusIndicator.innerHTML = '&nbsp;';
+                    }
+                    
+                    const messageTime = document.createElement('div');
+                    messageTime.className = 'message-time';
+                    messageTime.textContent = formatTime(message.timestamp);
+                    
+                    const messageInfo = document.createElement('div');
+                    messageInfo.className = 'message-info';
+                    messageInfo.appendChild(messageTime);
+                    messageInfo.appendChild(statusIndicator);
+                    
+                    const messageContent = document.createElement('div');
+                    messageContent.className = `message ${isCurrentUser ? 'sent' : 'received'}`;
+                    messageContent.textContent = message.content;
+                    
+                    messageElement.appendChild(messageContent);
+                    messageElement.appendChild(messageInfo);
+                    
                     elements.messagesContainer.appendChild(messageElement);
                     elements.messagesContainer.scrollTop = elements.messagesContainer.scrollHeight;
-                    
-                    // Marcar como leído si es nuestro mensaje
-                    if (isCurrentUser) {
-                        socket.emit('mark_as_read', {
-                            message_ids: [message.id]
-                        });
-                    }
                 }
+                // Actualizar lista de chats
+                fetchChats();
             });
-
             socket.on('user_status', (data) => {
                 // Actualizar estado en la lista de usuarios
                 const user = users.find(u => u.id === data.user_id);
@@ -1036,76 +992,86 @@
                     user.online = data.online;
                     renderUserList();
                 }
-
                 // Actualizar estado en el chat activo
                 if (currentChatUser && currentChatUser.id === data.user_id) {
                     currentChatUser.online = data.online;
                     elements.chatUserStatus.textContent = data.online ? 'En línea' : 'Desconectado';
                 }
-
                 // Actualizar lista de chats
                 fetchChats();
             });
-
             socket.on('typing', (data) => {
                 if (currentChatUser && data.sender_id === currentChatUser.id) {
                     elements.chatUserStatus.textContent = data.is_typing ? 'Escribiendo...' : 
                         (currentChatUser.online ? 'En línea' : 'Desconectado');
                 }
             });
-
             socket.on('update_chats', (data) => {
                 if (data.user_id == currentUserId || data.other_user_id == currentUserId) {
                     fetchChats();
                 }
             });
-
             socket.on('avatar_updated', (data) => {
                 if (data.user_id == currentUserId) {
                     currentUser.avatar = data.avatar;
                     sessionStorage.setItem('avatar', data.avatar);
                     updateProfileScreen();
                 }
-
                 // Actualizar en chats si es el usuario actual
                 if (currentChatUser && currentChatUser.id === data.user_id) {
                     currentChatUser.avatar = data.avatar;
                     elements.chatUserAvatar.style.backgroundImage = `url('/uploads/${data.avatar}')`;
                     elements.chatUserAvatar.textContent = '';
                 }
-
                 fetchChats();
             });
-
-            // Manejar reconexión
-            socket.on('connect', () => {
-                console.log('Conectado al servidor Socket.IO');
-                if (currentUserId) {
-                    socket.emit('update_user_status', { 
-                        user_id: currentUserId, 
-                        online: true 
-                    });
+            socket.on('messages_delivered', (data) => {
+                // Actualizar estado de mensajes a entregados
+                data.message_ids.forEach(msgId => {
+                    messageStatuses[msgId] = 'delivered';
+                });
+                // Actualizar la UI si estamos en el chat correcto
+                if (currentChatUser && data.chat_id === currentChat) {
+                    updateMessageStatuses();
                 }
             });
-
-            socket.on('disconnect', () => {
-                console.log('Desconectado del servidor Socket.IO');
+            socket.on('messages_read', (data) => {
+                // Actualizar estado de mensajes a leídos
+                data.message_ids.forEach(msgId => {
+                    messageStatuses[msgId] = 'read';
+                });
+                // Actualizar la UI si estamos en el chat correcto
+                if (currentChatUser && data.chat_id === currentChat) {
+                    updateMessageStatuses();
+                }
             });
-
-            socket.on('reconnect', () => {
-                console.log('Reconectado al servidor Socket.IO');
-                if (currentUserId) {
-                    socket.emit('update_user_status', { 
-                        user_id: currentUserId, 
-                        online: true 
-                    });
-                    if (currentChat) {
-                        fetchMessages(currentChat);
+            // Función para actualizar los indicadores de estado en la UI
+            function updateMessageStatuses() {
+                const messageElements = elements.messagesContainer.querySelectorAll('.message-container');
+                messageElements.forEach(container => {
+                    const messageContent = container.querySelector('.message');
+                    const statusIndicator = container.querySelector('.status-indicator');
+                    const messageId = messageContent.dataset.messageId;
+                    
+                    if (messageId && messageStatuses[messageId]) {
+                        const status = messageStatuses[messageId];
+                        if (status === 'delivered') {
+                            statusIndicator.innerHTML = `
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M4 8L6 10L10 6" stroke="#0084FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M7 8L9 10L13 6" stroke="#0084FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            `;
+                        } else if (status === 'read') {
+                            if (currentChatUser.avatar) {
+                                statusIndicator.innerHTML = `<img src="/uploads/${currentChatUser.avatar}" alt="Visto">`;
+                            } else {
+                                statusIndicator.innerHTML = `<div class="avatar" style="width: 16px; height: 16px; font-size: 0.7rem;">${currentChatUser.display_name.substring(0, 1).toUpperCase()}</div>`;
+                            }
+                        }
                     }
-                    fetchChats();
-                }
-            });
-
+                });
+            }
             // Inicialización
             updateProfileScreen();
             fetchChats();
