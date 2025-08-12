@@ -113,7 +113,7 @@ def get_chats():
 
     # Consulta base para mensajes
     messages_query = Message.query.filter(
-        (Message.sender_id == user_id) | (Message.receiver_id == user_id)
+        (Message.sender_id == user_id) | (Message.receiver_id == user_id))
     
     # Paginación
     messages_paginated = messages_query.order_by(
