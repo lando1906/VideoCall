@@ -16,7 +16,6 @@ load_dotenv()
 app = Flask(__name__,
             static_folder='static',
             template_folder='templates')
-
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'secret-key-dev')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///database.db').replace('postgres://', 'postgresql://')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -61,8 +60,9 @@ class Message(db.Model):
     receiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    delivered = db.Column(db.Boolean, default=False)
     read = db.Column(db.Boolean, default=False)
-
+    
     sender = db.relationship('User', foreign_keys=[sender_id])
     receiver = db.relationship('User', foreign_keys=[receiver_id])
 
@@ -110,7 +110,7 @@ def get_chats():
     user_id = request.args.get('user_id')
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 20))
-
+    
     # Consulta base para mensajes
     messages_query = Message.query.filter(
         (Message.sender_id == user_id) | (Message.receiver_id == user_id))
@@ -135,17 +135,16 @@ def get_chats():
                     'online': user.online
                 }
             }
-
         if not chats[other_user_id]['last_message']:
             chats[other_user_id]['last_message'] = {
                 'content': msg.content,
                 'timestamp': msg.timestamp.isoformat(),
-                'read': msg.read
+                'read': msg.read,
+                'delivered': msg.delivered
             }
-
         if not msg.read and msg.receiver_id == int(user_id):
             chats[other_user_id]['unread_count'] += 1
-
+    
     return jsonify({
         'chats': list(chats.values()),
         'pagination': {
@@ -161,34 +160,74 @@ def get_messages():
     chat_id = request.args.get('chat_id')
     page = int(request.args.get('page', 1))
     per_page = int(request.args.get('per_page', 50))
+    current_user_id = request.args.get('current_user_id')
+    
     user1_id, user2_id = map(int, chat_id.split('-'))
-
+    
     messages_query = Message.query.filter(
         ((Message.sender_id == user1_id) & (Message.receiver_id == user2_id)) |
         ((Message.sender_id == user2_id) & (Message.receiver_id == user1_id))
     ).order_by(Message.timestamp.desc())
-
+    
     messages_paginated = messages_query.paginate(page=page, per_page=per_page, error_out=False)
-
+    
+    # Marcar mensajes como entregados cuando se cargan
+    if page == 1:
+        delivered_messages = Message.query.filter(
+            Message.receiver_id == int(current_user_id),
+            Message.sender_id == (user1_id if user1_id != int(current_user_id) else user2_id),
+            Message.delivered == False
+        ).all()
+        
+        message_ids = []
+        for msg in delivered_messages:
+            msg.delivered = True
+            message_ids.append(msg.id)
+        db.session.commit()
+        
+        # Notificar al remitente que sus mensajes fueron entregados
+        if delivered_messages:
+            sender_id = delivered_messages[0].sender_id
+            sender = User.query.get(sender_id)
+            if sender and sender.socket_id:
+                socketio.emit('messages_delivered', {
+                    'message_ids': message_ids,
+                    'chat_id': chat_id
+                }, room=sender.socket_id)
+    
     # Marcar mensajes como leídos si es la primera página
     if page == 1:
         unread_messages = Message.query.filter(
-            Message.receiver_id == int(request.args.get('current_user_id')),
-            Message.sender_id == (user1_id if user1_id != int(request.args.get('current_user_id')) else user2_id),
+            Message.receiver_id == int(current_user_id),
+            Message.sender_id == (user1_id if user1_id != int(current_user_id) else user2_id),
             Message.read == False
         ).all()
         
+        message_ids = []
         for msg in unread_messages:
             msg.read = True
+            message_ids.append(msg.id)
         db.session.commit()
-
+        
+        # Notificar al remitente que sus mensajes fueron leídos
+        if unread_messages:
+            sender_id = unread_messages[0].sender_id
+            sender = User.query.get(sender_id)
+            if sender and sender.socket_id:
+                socketio.emit('messages_read', {
+                    'message_ids': message_ids,
+                    'chat_id': chat_id
+                }, room=sender.socket_id)
+    
     return jsonify({
         'messages': [{
             'id': msg.id,
             'sender_id': msg.sender_id,
+            'receiver_id': msg.receiver_id,
             'content': msg.content,
             'timestamp': msg.timestamp.isoformat(),
-            'read': msg.read
+            'read': msg.read,
+            'delivered': msg.delivered
         } for msg in messages_paginated.items],
         'pagination': {
             'page': page,
@@ -204,11 +243,13 @@ def create_message():
     new_message = Message(
         sender_id=data['sender_id'],
         receiver_id=data['receiver_id'],
-        content=data['content']
+        content=data['content'],
+        delivered=False,
+        read=False
     )
     db.session.add(new_message)
     db.session.commit()
-
+    
     # Obtener el socket_id del receptor
     receiver = User.query.get(data['receiver_id'])
     if receiver and receiver.socket_id:
@@ -218,34 +259,35 @@ def create_message():
             'receiver_id': new_message.receiver_id,
             'content': new_message.content,
             'timestamp': new_message.timestamp.isoformat(),
-            'read': new_message.read
+            'read': new_message.read,
+            'delivered': new_message.delivered
         }, room=receiver.socket_id)
-
+    
     # Actualizar lista de chats para ambos usuarios
     socketio.emit('update_chats', {
         'user_id': data['sender_id'],
         'other_user_id': data['receiver_id']
     }, broadcast=True)
-
+    
     return jsonify({'success': True, 'message_id': new_message.id})
 
 @app.route('/api/update_avatar', methods=['POST'])
 def update_avatar():
     if 'avatar' not in request.files:
         return jsonify({'success': False, 'error': 'No file uploaded'})
-
+    
     user_id = request.form.get('user_id')
     if not user_id:
         return jsonify({'success': False, 'error': 'User ID required'})
-
+    
     file = request.files['avatar']
     if file.filename == '':
         return jsonify({'success': False, 'error': 'No selected file'})
-
+    
     avatar_filename = save_avatar(file)
     if not avatar_filename:
         return jsonify({'success': False, 'error': 'Invalid file type'})
-
+    
     user = User.query.get(user_id)
     if user:
         if user.avatar:
@@ -253,18 +295,17 @@ def update_avatar():
                 os.remove(os.path.join(app.config['UPLOAD_FOLDER'], user.avatar))
             except OSError:
                 pass
-
         user.avatar = avatar_filename
         db.session.commit()
-
+        
         # Notificar a todos los clientes sobre el cambio de avatar
         socketio.emit('avatar_updated', {
             'user_id': user.id,
             'avatar': avatar_filename
         }, broadcast=True)
-
+        
         return jsonify({'success': True, 'avatar': avatar_filename})
-
+    
     return jsonify({'success': False, 'error': 'User not found'})
 
 # Auth Routes
@@ -272,7 +313,6 @@ def update_avatar():
 def login():
     data = request.form
     user = User.query.filter_by(username=data['username']).first()
-
     if user and user.check_password(data['password']):
         user.online = True
         user.last_seen = datetime.utcnow()
@@ -284,31 +324,30 @@ def login():
             'display_name': user.display_name,
             'avatar': user.avatar
         })
-
     return jsonify({'success': False, 'error': 'Invalid credentials'})
 
 @app.route('/register', methods=['POST'])
 def register():
     if 'username' not in request.form or 'password' not in request.form:
         return jsonify({'success': False, 'error': 'Missing required fields'})
-
+    
     if User.query.filter_by(username=request.form['username']).first():
         return jsonify({'success': False, 'error': 'Username already exists'})
-
+    
     new_user = User(
         username=request.form['username'],
         display_name=request.form.get('display_name', request.form['username'])
     )
     new_user.set_password(request.form['password'])
-
+    
     if 'avatar' in request.files:
         avatar_filename = save_avatar(request.files['avatar'])
         if avatar_filename:
             new_user.avatar = avatar_filename
-
+    
     db.session.add(new_user)
     db.session.commit()
-
+    
     return jsonify({
         'success': True,
         'user_id': new_user.id,
@@ -343,7 +382,7 @@ def handle_connect():
                 'user_id': user.id,
                 'online': True
             }, broadcast=True)
-
+            
             # Actualizar chats del usuario
             socketio.emit('update_chats', {
                 'user_id': user.id
@@ -363,23 +402,6 @@ def handle_disconnect():
             'user_id': user.id,
             'online': False
         }, broadcast=True)
-
-@socketio.on('mark_as_read')
-def handle_mark_as_read(data):
-    if 'message_ids' in data:
-        messages = Message.query.filter(Message.id.in_(data['message_ids'])).all()
-        for msg in messages:
-            msg.read = True
-        db.session.commit()
-        
-        # Notificar al remitente que sus mensajes fueron leídos
-        for msg in messages:
-            sender = User.query.get(msg.sender_id)
-            if sender and sender.socket_id:
-                socketio.emit('messages_read', {
-                    'message_ids': data['message_ids'],
-                    'chat_id': f"{min(msg.sender_id, msg.receiver_id)}-{max(msg.sender_id, msg.receiver_id)}"
-                }, room=sender.socket_id)
 
 @socketio.on('typing')
 def handle_typing(data):
