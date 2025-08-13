@@ -3,419 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acceso | Seend</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <title>Autenticación - VideoChat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --bg-color: #f8faff;
-            --text-color: #2c3e50;
-            --card-bg: #ffffff;
-            --primary-color: #2563eb;
-            --secondary-color: #60a5fa;
-            --accent-color: #27ae60;
-            --border-color: #e6f0ff;
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            --transition: all 0.3s ease;
+            --primary: #4361ee;
+            --primary-dark: #3a0ca3;
+            --danger: #f72585;
+            --success: #4cc9f0;
+            --dark: #212529;
+            --light: #f8f9fa;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Poppins', sans-serif;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            transition: var(--transition);
-            display: flex;
-            flex-direction: column;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: var(--light);
             min-height: 100vh;
-        }
-
-        .header {
             display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            background-color: var(--card-bg);
-            box-shadow: var(--shadow);
-            z-index: 10;
-        }
-
-        .header-info {
-            flex: 1;
-            display: flex;
-            align-items: center;
             justify-content: center;
-        }
-
-        .header-info h1 {
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-
-        .auth-container {
-            display: flex;
-            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            flex: 1;
             padding: 20px;
         }
 
-        .auth-card {
-            background-color: var(--card-bg);
+        .auth-container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2rem;
             border-radius: 16px;
-            box-shadow: var(--shadow);
-            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             width: 100%;
             max-width: 400px;
-            border: 1px solid var(--border-color);
-            transition: var(--transition);
-        }
-
-        .auth-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 24px;
             text-align: center;
-            color: var(--primary-color);
+            animation: fadeIn 0.5s ease-out;
         }
 
-        .auth-form {
+        h2 {
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+        }
+
+        form {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 1rem;
         }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .form-label {
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: var(--text-color);
-        }
-
-        .form-input {
-            padding: 12px 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 0.9rem;
-            outline: none;
-            transition: var(--transition);
-        }
-
-        .form-input:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
-        }
-
-        .auth-button {
+        input {
             padding: 12px;
-            border: none;
             border-radius: 8px;
-            background-color: var(--primary-color);
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
             color: white;
-            font-weight: 500;
-            font-size: 0.9rem;
+            font-size: 1rem;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        button {
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background: var(--success);
+            color: var(--dark);
+            font-weight: 600;
             cursor: pointer;
-            transition: var(--transition);
-            margin-top: 10px;
+            transition: all 0.3s ease;
         }
 
-        .auth-button:hover {
-            background-color: var(--secondary-color);
+        button:hover {
+            background: #3bc0e0;
         }
 
-        .auth-button:disabled {
-            background-color: #9ca3af;
-            cursor: not-allowed;
-        }
-
-        .auth-footer {
-            margin-top: 20px;
-            text-align: center;
+        .toggle-link {
+            margin-top: 1rem;
             font-size: 0.9rem;
-            color: #6b7280;
+            color: rgba(255, 255, 255, 0.8);
         }
 
-        .auth-link {
-            color: var(--primary-color);
-            font-weight: 500;
-            text-decoration: none;
-            transition: var(--transition);
-        }
-
-        .auth-link:hover {
+        .toggle-link a {
+            color: var(--light);
             text-decoration: underline;
         }
 
-        .error-message {
-            color: #ef4444;
-            font-size: 0.8rem;
-            margin-top: 4px;
-            display: none;
+        .message {
+            margin-bottom: 1rem;
+            color: var(--danger);
+            font-weight: 500;
         }
 
-        .input-error {
-            border-color: #ef4444 !important;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        @media (max-width: 480px) {
-            .auth-card {
-                padding: 20px;
-            }
-
-            .auth-title {
-                font-size: 1.3rem;
-            }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-info">
-            <h1>Seend</h1>
-        </div>
-    </div>
-
     <div class="auth-container">
-        <div class="auth-card" id="login-card">
-            <h2 class="auth-title">Iniciar Sesión</h2>
+        <h2>{{ 'Registrarse' if register else 'Iniciar Sesión' }}</h2>
 
-            <form class="auth-form" id="login-form">
-                <div class="form-group">
-                    <label for="login-username" class="form-label">Nombre de usuario</label>
-                    <input type="text" id="login-username" class="form-input" placeholder="Tu nombre de usuario" required>
-                    <div class="error-message" id="login-username-error">Por favor ingresa tu nombre de usuario</div>
-                </div>
+        {% if message %}
+            <div class="message">{{ message }}</div>
+        {% endif %}
 
-                <div class="form-group">
-                    <label for="login-password" class="form-label">Contraseña</label>
-                    <input type="password" id="login-password" class="form-input" placeholder="••••••••" required>
-                    <div class="error-message" id="login-password-error">La contraseña es requerida</div>
-                </div>
+        <form method="POST">
+            <input type="text" name="username" placeholder="Nombre de usuario" required>
+            <input type="password" name="password" placeholder="Contraseña" required>
+            <button type="submit">{{ 'Crear cuenta' if register else 'Entrar' }}</button>
+        </form>
 
-                <button type="submit" class="auth-button">Iniciar Sesión</button>
-            </form>
-
-            <div class="auth-footer">
-                ¿No tienes una cuenta? <a href="#" class="auth-link" id="show-register">Regístrate</a>
-            </div>
-        </div>
-
-        <div class="auth-card hidden" id="register-card">
-            <h2 class="auth-title">Crear Cuenta</h2>
-
-            <form class="auth-form" id="register-form" enctype="multipart/form-data">
-                <div class="form-group">
-                    <label for="register-username" class="form-label">Nombre de usuario</label>
-                    <input type="text" id="register-username" class="form-input" placeholder="Elige un nombre de usuario" required>
-                    <div class="error-message" id="register-username-error">Por favor ingresa un nombre de usuario</div>
-                </div>
-
-                <div class="form-group">
-                    <label for="register-display-name" class="form-label">Nombre para mostrar</label>
-                    <input type="text" id="register-display-name" class="form-input" placeholder="Como te verán los demás">
-                </div>
-
-                <div class="form-group">
-                    <label for="register-password" class="form-label">Contraseña</label>
-                    <input type="password" id="register-password" class="form-input" placeholder="••••••••" required>
-                    <div class="error-message" id="register-password-error">La contraseña debe tener al menos 6 caracteres</div>
-                </div>
-
-                <div class="form-group">
-                    <label for="register-confirm" class="form-label">Confirmar contraseña</label>
-                    <input type="password" id="register-confirm" class="form-input" placeholder="••••••••" required>
-                    <div class="error-message" id="register-confirm-error">Las contraseñas no coinciden</div>
-                </div>
-
-                <div class="form-group">
-                    <label for="register-avatar" class="form-label">Foto de perfil (opcional)</label>
-                    <input type="file" id="register-avatar" class="form-input" accept="image/*">
-                </div>
-
-                <button type="submit" class="auth-button">Registrarse</button>
-            </form>
-
-            <div class="auth-footer">
-                ¿Ya tienes una cuenta? <a href="#" class="auth-link" id="show-login">Iniciar Sesión</a>
-            </div>
+        <div class="toggle-link">
+            {% if register %}
+                ¿Ya tienes cuenta? <a href="{{ url_for('login') }}">Inicia sesión</a>
+            {% else %}
+                ¿No tienes cuenta? <a href="{{ url_for('register') }}">Regístrate</a>
+            {% endif %}
         </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const loginCard = document.getElementById('login-card');
-            const registerCard = document.getElementById('register-card');
-            const showRegister = document.getElementById('show-register');
-            const showLogin = document.getElementById('show-login');
-
-            const loginForm = document.getElementById('login-form');
-            const registerForm = document.getElementById('register-form');
-
-            showRegister.addEventListener('click', (e) => {
-                e.preventDefault();
-                loginCard.classList.add('hidden');
-                registerCard.classList.remove('hidden');
-            });
-
-            showLogin.addEventListener('click', (e) => {
-                e.preventDefault();
-                registerCard.classList.add('hidden');
-                loginCard.classList.remove('hidden');
-            });
-
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                let isValid = true;
-
-                const username = document.getElementById('login-username');
-                const usernameError = document.getElementById('login-username-error');
-                if (!username.value) {
-                    username.classList.add('input-error');
-                    usernameError.style.display = 'block';
-                    isValid = false;
-                } else {
-                    username.classList.remove('input-error');
-                    usernameError.style.display = 'none';
-                }
-
-                const password = document.getElementById('login-password');
-                const passwordError = document.getElementById('login-password-error');
-                if (!password.value || password.value.length < 6) {
-                    password.classList.add('input-error');
-                    passwordError.style.display = 'block';
-                    isValid = false;
-                } else {
-                    password.classList.remove('input-error');
-                    passwordError.style.display = 'none';
-                }
-
-                if (isValid) {
-                    try {
-                        const response = await fetch('/login', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: new URLSearchParams({
-                                'username': username.value,
-                                'password': password.value
-                            })
-                        });
-
-                        const data = await response.json();
-
-                        if (data.success) {
-                            // Guardar datos de usuario en sessionStorage
-                            sessionStorage.setItem('user_id', data.user_id);
-                            sessionStorage.setItem('username', data.username);
-                            sessionStorage.setItem('display_name', data.display_name);
-                            sessionStorage.setItem('avatar', data.avatar);
-
-                            // Redirigir al chat
-                            window.location.href = '/chat?user_id=' + data.user_id;
-                        } else {
-                            alert(data.error || 'Error al iniciar sesión');
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                        alert('Error al conectar con el servidor');
-                    }
-                }
-            });
-
-            registerForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                let isValid = true;
-
-                const username = document.getElementById('register-username');
-                const usernameError = document.getElementById('register-username-error');
-                if (!username.value) {
-                    username.classList.add('input-error');
-                    usernameError.style.display = 'block';
-                    isValid = false;
-                } else {
-                    username.classList.remove('input-error');
-                    usernameError.style.display = 'none';
-                }
-
-                const password = document.getElementById('register-password');
-                const passwordError = document.getElementById('register-password-error');
-                if (!password.value || password.value.length < 6) {
-                    password.classList.add('input-error');
-                    passwordError.style.display = 'block';
-                    isValid = false;
-                } else {
-                    password.classList.remove('input-error');
-                    passwordError.style.display = 'none';
-                }
-
-                const confirm = document.getElementById('register-confirm');
-                const confirmError = document.getElementById('register-confirm-error');
-                if (!confirm.value || confirm.value !== password.value) {
-                    confirm.classList.add('input-error');
-                    confirmError.style.display = 'block';
-                    isValid = false;
-                } else {
-                    confirm.classList.remove('input-error');
-                    confirmError.style.display = 'none';
-                }
-
-                if (isValid) {
-                    try {
-                        const formData = new FormData();
-                        formData.append('username', username.value);
-                        formData.append('password', password.value);
-                        formData.append('confirm_password', confirm.value);
-
-                        const displayName = document.getElementById('register-display-name').value;
-                        if (displayName) {
-                            formData.append('display_name', displayName);
-                        }
-
-                        const avatarInput = document.getElementById('register-avatar');
-                        if (avatarInput.files[0]) {
-                            formData.append('avatar', avatarInput.files[0]);
-                        }
-
-                        const response = await fetch('/register', {
-                            method: 'POST',
-                            body: formData
-                        });
-
-                        const data = await response.json();
-
-                        if (data.success) {
-                            // Guardar datos de usuario en sessionStorage
-                            sessionStorage.setItem('user_id', data.user_id);
-                            sessionStorage.setItem('username', data.username);
-                            sessionStorage.setItem('display_name', data.display_name);
-                            sessionStorage.setItem('avatar', data.avatar);
-
-                            // Redirigir al chat
-                            window.location.href = '/chat?user_id=' + data.user_id;
-                        } else {
-                            alert(data.error || 'Error al registrarse');
-                        }
-                    } catch (error) {
-                        console.error('Error:', error);
-                        alert('Error al conectar con el servidor');
-                    }
-                }
-            });
-        });
-    </script>
 </body>
 </html>
