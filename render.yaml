@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: deltachat-hola-bot
+    env: docker
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    plan: starter
+    envVars:
+      - key: DC_ADDR
+        sync: false
+      - key: DC_MAIL_PW
+        sync: false
+      - key: DC_DB_PATH
+        value: /data/bot.db
+      # Si no funciona autoconfig:
+      # - key: DC_IMAP_SERVER
+      # - key: DC_IMAP_PORT
+      # - key: DC_IMAP_SECURE
+      # - key: DC_SMTP_SERVER
+      # - key: DC_SMTP_PORT
+      # - key: DC_SMTP_SECURE
