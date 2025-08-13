@@ -1,21 +1,13 @@
 services:
   - type: web
-    name: deltachat-hola-bot
-    env: docker
-    dockerfilePath: ./Dockerfile
-    autoDeploy: true
-    plan: starter
+    name: videochat-app
+    env: python
+    plan: free
+    buildCommand: ""
+    startCommand: python app.py
     envVars:
-      - key: DC_ADDR
-        sync: false
-      - key: DC_MAIL_PW
-        sync: false
-      - key: DC_DB_PATH
-        value: /data/bot.db
-      # Si no funciona autoconfig:
-      # - key: DC_IMAP_SERVER
-      # - key: DC_IMAP_PORT
-      # - key: DC_IMAP_SECURE
-      # - key: DC_SMTP_SERVER
-      # - key: DC_SMTP_PORT
-      # - key: DC_SMTP_SECURE
+      - key: DATABASE_URL
+        value: postgresql://seend_wth1_user:MUb0Gmcrd8Gyrj57rbYDAC3EuuuGZdmV@dpg-d2dh2l15pdvs73et26bg-a.oregon-postgres.render.com/seend_wth1
+      - key: SECRET_KEY
+        value: supersecretkey
+    autoDeploy: true
