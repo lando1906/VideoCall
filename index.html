@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RedHub</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gray: #4a4a4a;
+            --dark-gray: #333333;
+            --light-gray: #666666;
+            --background: #1a1a1a;
+            --card-bg: #2c2c2c;
+            --text-dark: #d0d0d0;
+            --text-light: #888888;
+            --border-radius: 6px;
+            --shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        body {
+            background-color: var(--background);
+            color: var(--text-dark);
+            padding-top: 50px;
+        }
+        
+        /* Header */
+        .header {
+            background-color: var(--primary-gray);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: var(--shadow);
+        }
+        
+        .logo {
+            font-size: 1.4rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        
+        .logo-icon {
+            width: 24px;
+            height: 24px;
+        }
+        
+        .header-buttons {
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+        }
+        
+        .btn {
+            background-color: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.9rem;
+            font-weight: 400;
+        }
+        
+        .btn:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+        
+        .btn-icon {
+            width: 16px;
+            height: 16px;
+        }
+        
+        /* Main Content */
+        .main-content {
+            padding: 1.5rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .videos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .video-card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+        
+        .video-card:hover {
+            transform: translateY(-4px);
+        }
+        
+        .video-thumbnail {
+            width: 100%;
+            height: 120px;
+            background-color: #333;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .play-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .play-icon svg {
+            width: 16px;
+            height: 16px;
+            margin-left: 2px;
+        }
+        
+        .video-info {
+            padding: 0.8rem;
+        }
+        
+        .video-title {
+            font-weight: 500;
+            margin-bottom: 0.4rem;
+            font-size: 0.95rem;
+            color: var(--text-dark);
+        }
+        
+        .video-author {
+            color: var(--text-light);
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        
+        .user-icon {
+            width: 14px;
+            height: 14px;
+        }
+        
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: var(--card-bg);
+            color: var(--text-dark);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 400px;
+            box-shadow: var(--shadow);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid #444;
+        }
+        
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        
+        .modal-icon {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--text-light);
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-weight: 400;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid #444;
+            border-radius: var(--border-radius);
+            background-color: #333;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+        
+        .file-input {
+            padding: 0.4rem;
+            border: 1px dashed #444;
+            border-radius: var(--border-radius);
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            background-color: #333;
+            font-size: 0.9rem;
+        }
+        
+        .file-input:hover {
+            background-color: #444;
+        }
+        
+        .submit-btn {
+            background-color: var(--primary-gray);
+            color: white;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 400;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.9rem;
+        }
+        
+        .submit-btn:hover {
+            background-color: var(--dark-gray);
+        }
+        
+        .submit-btn-icon {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .progress-container {
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background-color: #444;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background-color: var(--primary-gray);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .progress-text {
+            text-align: center;
+            margin-top: 0.4rem;
+            font-size: 0.8rem;
+            color: var(--text-dark);
+        }
+        
+        /* Profile Page */
+        .profile-page {
+            display: none;
+            padding: 1.5rem;
+            max-width: 1000px;
+            margin: 50px auto 0;
+            background-color: var(--background);
+        }
+        
+        .profile-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: var(--primary-gray);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            overflow: hidden;
+        }
+        
+        .profile-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .profile-name {
+            font-size: 1.4rem;
+            font-weight: 500;
+            margin-bottom: 0.4rem;
+            color: var(--text-dark);
+        }
+        
+        .profile-email {
+            color: var(--text-light);
+            font-size: 0.9rem;
+            margin-bottom: 0.8rem;
+        }
+        
+        .edit-profile-btn {
+            background-color: var(--primary-gray);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 400;
+            font-size: 0.9rem;
+        }
+        
+        .edit-profile-btn:hover {
+            background-color: var(--dark-gray);
+        }
+        
+        .profile-stats {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stat-card {
+            background-color: #333;
+            padding: 0.8rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            width: 120px;
+        }
+        
+        .stat-number {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--primary-gray);
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+        
+        .close-profile-btn {
+            background-color: var(--primary-gray);
+            color: white;
+            padding: 0.6rem 1rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 400;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .close-profile-btn:hover {
+            background-color: var(--dark-gray);
+        }
+        
+        /* Video Player Modal */
+        .video-player-modal {
+            background-color: rgba(0, 0, 0, 0.9);
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .video-player-content {
+            background-color: var(--card-bg);
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 600px;
+            box-shadow: var(--shadow);
+        }
+        
+        .video-player {
+            width: 100%;
+            max-height: 50vh;
+            border-radius: var(--border-radius);
+            background-color: #000;
+        }
+        
+        .video-player-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem;
+            background-color: #333;
+            border-radius: var(--border-radius);
+            margin-top: 0.8rem;
+        }
+        
+        .download-btn {
+            background-color: var(--primary-gray);
+            color: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: var(--border-radius);
+            text-decoration: none;
+            font-weight: 400;
+            font-size: 0.9rem;
+        }
+        
+        .download-btn:hover {
+            background-color: var(--dark-gray);
+        }
+        
+        /* Delete Button */
+        .delete-btn {
+            background-color: #444;
+            color: white;
+            border: none;
+            padding: 0.4rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-top: 0.4rem;
+        }
+        
+        .delete-btn:hover {
+            background-color: #555;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.6rem;
+            }
+            
+            .logo {
+                font-size: 1.2rem;
+            }
+            
+            .btn span {
+                display: none;
+            }
+            
+            .videos-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .main-content, .profile-page {
+                padding: 1rem;
+            }
+            
+            .video-player-content {
+                width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">
+            <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM15 15.5C14.17 15.5 13.5 14.83 13.5 14V10C13.5 9.17 14.17 8.5 15 8.5C15.83 8.5 16.5 9.17 16.5 10V14C16.5 14.83 15.83 15.5 15 15.5ZM9 15.5C8.17 15.5 7.5 14.83 7.5 14V10C7.5 9.17 8.17 8.5 9 8.5C9.83 8.5 10.5 9.17 10.5 10V14C10.5 14.83 9.83 15.5 9 15.5Z" fill="white"/>
+            </svg>
+            <span>RedHub</span>
+        </div>
+        <div class="header-buttons">
+            <button class="btn" id="upload-btn">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 16V4M12 4L8 8M12 4L16 8" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M4 16V20H20V16" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Subir</span>
+            </button>
+            <button class="btn" id="profile-btn">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 12C14.2091 12 16 10.2091 16 8C16 5.79086 14.2091 4 12 4C9.79086 4 8 5.79086 8 8C8 10.2091 9.79086 12 12 12Z" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M20 20C20 18.3431 16.4183 17 12 17C7.58172 17 4 18.3431 4 20" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Perfil</span>
+            </button>
+            <button class="btn" id="logout-btn">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9M16 17L21 12M21 12L16 7M21 12H9" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Cerrar Sesión</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="main-content" id="main-content">
+        <h2>Videos populares</h2>
+        <div class="videos-grid" id="videos-container">
+            <!-- Los videos se cargarán dinámicamente -->
+        </div>
+    </div>
+
+    <!-- Profile Page -->
+    <div class="profile-page" id="profile-page">
+        <button class="close-profile-btn" id="close-profile-btn">Cerrar</button>
+        <h2>Mi Perfil</h2>
+        <div class="profile-info">
+            <div class="profile-avatar" id="profile-avatar">
+                <img id="profile-avatar-img" src="https://placehold.co/80x80/ffffff/000000?text=Avatar" alt="Avatar">
+            </div>
+            <h3 class="profile-name" id="profile-name">Usuario</h3>
+            <p class="profile-email" id="profile-email">usuario@example.com</p>
+            <button class="edit-profile-btn" id="edit-profile-btn">Editar Perfil</button>
+        </div>
+        
+        <div class="profile-stats">
+            <div class="stat-card">
+                <div class="stat-number" id="stat-videos">0</div>
+                <div class="stat-label">Videos</div>
+            </div>
+        </div>
+        
+        <div id="edit-profile-form" style="display: none; margin-bottom: 1.5rem;">
+            <h4>Editar Perfil</h4>
+            <form id="profile-form">
+                <div class="form-group">
+                    <label for="profile-name-input">Nombre de usuario</label>
+                    <input type="text" id="profile-name-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="profile-avatar-input">Foto de perfil</label>
+                    <div class="file-input" id="profile-avatar-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 16V4M12 4L8 8M12 4L16 8" stroke="#666666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M4 16V20H20V16" stroke="#666666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Seleccionar imagen</span>
+                    </div>
+                    <input type="file" id="profile-avatar-input" accept="image/*" style="display: none;">
+                </div>
+                <button type="submit" class="submit-btn">
+                    <svg class="submit-btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5 13H16M5 7H10M14 17H10" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Guardar
+                </button>
+            </form>
+        </div>
+        
+        <h4>Mis videos</h4>
+        <div class="videos-grid" id="profile-videos">
+            <!-- Los videos del usuario se cargarán aquí -->
+        </div>
+    </div>
+
+    <!-- Modal para subir video -->
+    <div class="modal" id="upload-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <svg class="modal-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 16V4M12 4L8 8M12 4L16 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M4 16V20H20V16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Subir video
+                </h3>
+                <button class="close-btn" id="close-upload">&times;</button>
+            </div>
+            <form id="upload-form">
+                <div class="form-group">
+                    <label for="video-name">Nombre del video</label>
+                    <input type="text" id="video-name" required placeholder="Título del video">
+                </div>
+                <div class="form-group">
+                    <label for="video-file">Seleccionar video</label>
+                    <div class="file-input" id="video-file-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M14.8284 14.8284C13.2663 16.3905 10.7337 16.3905 9.17157 14.8284C7.60948 13.2663 7.60948 10.7337 9.17157 9.17157C10.7337 7.60948 13.2663 7.60948 14.8284 9.17157M14.8284 14.8284C16.3905 13.2663 16.3905 10.7337 14.8284 9.17157M14.8284 14.8284L9.17157 9.17157M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#666666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>Seleccionar video</span>
+                    </div>
+                    <input type="file" id="video-file" accept="video/*" required style="display: none;">
+                </div>
+                <button type="submit" class="submit-btn">
+                    <svg class="submit-btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 16V4M12 4L8 8M12 4L16 8" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M4 16V20H20V16" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Subir
+                </button>
+            </form>
+            <div class="progress-container" id="progress-container">
+                <div class="progress-bar">
+                    <div class="progress" id="progress"></div>
+                </div>
+                <div class="progress-text" id="progress-text">0%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de reproductor de video -->
+    <div class="video-player-modal" id="video-player-modal">
+        <div class="video-player-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="video-player-title">Video</h3>
+                <button class="close-btn" id="close-video-player">&times;</button>
+            </div>
+            <video class="video-player" id="video-player" controls>
+                <source id="video-source" src="" type="video/mp4">
+                Tu navegador no soporta el reproductor de video.
+            </video>
+            <div class="video-player-controls">
+                <a class="download-btn" id="download-btn" href="" download>Descargar</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const socket = io();
+
+            // Elementos del DOM
+            const uploadBtn = document.getElementById('upload-btn');
+            const profileBtn = document.getElementById('profile-btn');
+            const logoutBtn = document.getElementById('logout-btn');
+            const uploadModal = document.getElementById('upload-modal');
+            const closeUpload = document.getElementById('close-upload');
+            const uploadForm = document.getElementById('upload-form');
+            const videoFileBtn = document.getElementById('video-file-btn');
+            const videoFileInput = document.getElementById('video-file');
+            const progressContainer = document.getElementById('progress-container');
+            const progressBar = document.getElementById('progress');
+            const progressText = document.getElementById('progress-text');
+            const videosContainer = document.getElementById('videos-container');
+            const profilePage = document.getElementById('profile-page');
+            const mainContent = document.getElementById('main-content');
+            const closeProfileBtn = document.getElementById('close-profile-btn');
+            const editProfileBtn = document.getElementById('edit-profile-btn');
+            const editProfileForm = document.getElementById('edit-profile-form');
+            const profileForm = document.getElementById('profile-form');
+            const profileAvatarBtn = document.getElementById('profile-avatar-btn');
+            const profileAvatarInput = document.getElementById('profile-avatar-input');
+            const profileAvatarImg = document.getElementById('profile-avatar-img');
+            const profileName = document.getElementById('profile-name');
+            const profileEmail = document.getElementById('profile-email');
+            const videoPlayerModal = document.getElementById('video-player-modal');
+            const videoPlayer = document.getElementById('video-player');
+            const videoSource = document.getElementById('video-source');
+            const videoPlayerTitle = document.getElementById('video-player-title');
+            const downloadBtn = document.getElementById('download-btn');
+            const closeVideoPlayer = document.getElementById('close-video-player');
+            const profileVideosContainer = document.getElementById('profile-videos');
+            const statVideos = document.getElementById('stat-videos');
+
+            // Verificar autenticación
+            fetch('/api/check-auth', {
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.authenticated) {
+                    window.location.href = '/auth.html';
+                } else {
+                    profileName.textContent = data.user.name;
+                    profileEmail.textContent = data.user.email;
+                    profileAvatarImg.src = data.user.avatar || 'https://placehold.co/80x80/ffffff/000000?text=Avatar';
+                    document.getElementById('profile-name-input').value = data.user.name;
+                    loadVideos();
+                    loadProfileVideos();
+                }
+            });
+
+            // Cargar videos
+            function loadVideos() {
+                fetch('/api/videos')
+                    .then(response => response.json())
+                    .then(videos => {
+                        videosContainer.innerHTML = '';
+                        videos.forEach(video => {
+                            const videoCard = createVideoCard(video);
+                            videosContainer.appendChild(videoCard);
+                        });
+                    });
+            }
+
+            // Cargar videos del usuario
+            function loadProfileVideos() {
+                fetch('/api/user-videos', { credentials: 'include' })
+                    .then(response => response.json())
+                    .then(videos => {
+                        profileVideosContainer.innerHTML = '';
+                        videos.forEach(video => {
+                            const videoCard = createVideoCard(video, true);
+                            profileVideosContainer.appendChild(videoCard);
+                        });
+                        statVideos.textContent = videos.length;
+                    });
+            }
+
+            // Crear tarjeta de video
+            function createVideoCard(video, isProfile = false) {
+                const card = document.createElement('div');
+                card.className = 'video-card';
+                card.innerHTML = `
+                    <div class="video-thumbnail">
+                        <img src="${video.thumbnail}" alt="${video.title}">
+                        <div class="play-icon">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 5V19L19 12L8 5Z" fill="#666666"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="video-info">
+                        <h3 class="video-title">${video.title}</h3>
+                        <p class="video-author">
+                            <svg class="user-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 12C14.2091 12 16 10.2091 16 8C16 5.79086 14.2091 4 12 4C9.79086 4 8 5.79086 8 8C8 10.2091 9.79086 12 12 12Z" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M20 20C20 18.3431 16.4183 17 12 17C7.58172 17 4 18.3431 4 20" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            ${video.author}
+                        </p>
+                        ${isProfile ? `<button class="delete-btn" data-id="${video.id}">Eliminar</button>` : ''}
+                    </div>
+                `;
+                card.addEventListener('click', function(e) {
+                    if (!e.target.classList.contains('delete-btn')) {
+                        videoPlayerTitle.textContent = video.title;
+                        videoSource.src = video.video_url;
+                        downloadBtn.href = video.video_url;
+                        downloadBtn.download = `${video.title}.mp4`;
+                        videoPlayer.load();
+                        videoPlayerModal.style.display = 'flex';
+                    }
+                });
+                return card;
+            }
+
+            // Socket.IO eventos
+            socket.on('video_uploaded', function(video) {
+                loadVideos();
+                loadProfileVideos();
+            });
+
+            socket.on('video_deleted', function(videoId) {
+                loadVideos();
+                loadProfileVideos();
+            });
+
+            socket.on('profile_updated', function(user) {
+                profileName.textContent = user.name;
+                profileAvatarImg.src = user.avatar;
+                document.getElementById('profile-name-input').value = user.name;
+            });
+
+            // Mostrar página de perfil
+            profileBtn.addEventListener('click', function() {
+                mainContent.style.display = 'none';
+                profilePage.style.display = 'block';
+            });
+
+            // Cerrar página de perfil
+            closeProfileBtn.addEventListener('click', function() {
+                profilePage.style.display = 'none';
+                mainContent.style.display = 'block';
+                editProfileForm.style.display = 'none';
+            });
+
+            // Abrir modal de subida
+            uploadBtn.addEventListener('click', function() {
+                uploadModal.style.display = 'flex';
+            });
+
+            // Cerrar modal de subida
+            closeUpload.addEventListener('click', function() {
+                uploadModal.style.display = 'none';
+            });
+
+            // Cerrar modal de video
+            closeVideoPlayer.addEventListener('click', function() {
+                videoPlayerModal.style.display = 'none';
+                videoPlayer.pause();
+            });
+
+            // Cerrar modales al hacer clic fuera
+            window.addEventListener('click', function(event) {
+                if (event.target === uploadModal) {
+                    uploadModal.style.display = 'none';
+                }
+                if (event.target === videoPlayerModal) {
+                    videoPlayerModal.style.display = 'none';
+                    videoPlayer.pause();
+                }
+            });
+
+            // Manejar clic en el botón de selección de video
+            videoFileBtn.addEventListener('click', function() {
+                videoFileInput.click();
+            });
+
+            // Mostrar nombre de archivo seleccionado (video)
+            videoFileInput.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    const file = this.files[0];
+                    if (file.size > 100 * 1024 * 1024) {
+                        alert('El video es demasiado grande. Máximo 100MB.');
+                        return;
+                    }
+                    videoFileBtn.innerHTML = `
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 12H15M10 16H14M12 4C11.7348 4 11.4804 3.89464 11.2929 3.70711C11.1054 3.51957 11 3.26522 11 3C11 2.73478 11.1054 2.48043 11.2929 2.29289C11.4804 2.10536 11.7348 2 12 2C12.2652 2 12.5196 2.10536 12.7071 2.29289C12.8946 2.48043 13 2.73478 13 3C13 3.26522 12.8946 3.51957 12.7071 3.70711C12.5196 3.89464 12.2652 4 12 4ZM6 20H18C18.5304 20 19.0391 19.7893 19.4142 19.4142C19.7893 19.0391 20 18.5304 20 18V6C20 5.46957 19.7893 4.96086 19.4142 4.58579C19.0391 4.21071 18.5304 4 18 4H6C5.46957 4 4.96086 4.21071 4.58579 4.58579C4.21071 4.96086 4 5.46957 4 6V18C4 18.5304 4.21071 19.0391 4.58579 19.4142C4.96086 19.7893 5.46957 20 6 20Z" stroke="#666666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>${file.name}</span>
+                    `;
+                }
+            });
+
+            // Manejar envío del formulario de subida
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const videoName = document.getElementById('video-name').value;
+                const videoFile = document.getElementById('video-file').files[0];
+                
+                if (videoName && videoFile) {
+                    if (videoName.length > 100) {
+                        alert('El título es demasiado largo. Máximo 100 caracteres.');
+                        return;
+                    }
+                    
+                    progressContainer.style.display = 'block';
+                    const formData = new FormData();
+                    formData.append('video', videoFile);
+                    formData.append('title', videoName);
+                    
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/api/upload', true);
+                    xhr.upload.onprogress = function(e) {
+                        if (e.lengthComputable) {
+                            const percent = (e.loaded / e.total) * 100;
+                            progressBar.style.width = percent + '%';
+                            progressText.textContent = Math.round(percent) + '%';
+                        }
+                    };
+                    xhr.onload = function() {
+                        progressContainer.style.display = 'none';
+                        if (xhr.status === 200) {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.success) {
+                                socket.emit('video_uploaded', response.video);
+                                uploadModal.style.display = 'none';
+                                uploadForm.reset();
+                                videoFileBtn.innerHTML = `
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M14.8284 14.8284C13.2663 16.3905 10.7337 16.3905 9.17157 14.8284C7.60948 13.2663 7.60948 10.7337 9.17157 9.17157C10.7337 7.60948 13.2663 7.60948 14.8284 9.17157M14.8284 14.8284C16.3905 13.2663 16.3905 10.7337 14.8284 9.17157M14.8284 14.8284L9.17157 9.17157M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="#666666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                    <span>Seleccionar video</span>
+                                `;
+                            } else {
+                                alert('Error al subir el video: ' + response.message);
+                            }
+                        } else {
+                            alert('Error al subir el video.');
+                        }
+                    };
+                    xhr.setRequestHeader('X-Socket-Id', socket.id);
+                    xhr.send(formData);
+                }
+            });
+
+            // Mostrar formulario de edición de perfil
+            editProfileBtn.addEventListener('click', function() {
+                editProfileForm.style.display = editProfileForm.style.display === 'none' ? 'block' : 'none';
+            });
+
+            // Manejar clic en el botón de selección de avatar
+            profileAvatarBtn.addEventListener('click', function() {
+                profileAvatarInput.click();
+            });
+
+            // Mostrar vista previa de la imagen de perfil
+            profileAvatarInput.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    const file = this.files[0];
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('La imagen es demasiado grande. Máximo 5MB.');
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        profileAvatarImg.src = e.target.result;
+                        profileAvatarBtn.innerHTML = `
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 16V4M12 4L8 8M12 4L16 8" stroke="#666666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M4 16V20H20V16" stroke="#666666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>${file.name}</span>
+                        `;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Manejar envío del formulario de perfil
+            profileForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const name = document.getElementById('profile-name-input').value;
+                const avatarFile = profileAvatarInput.files[0];
+                if (name.length > 50) {
+                    alert('El nombre es demasiado largo. Máximo 50 caracteres.');
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('name', name);
+                if (avatarFile) formData.append('avatar', avatarFile);
+                fetch('/api/update-profile', {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        socket.emit('profile_updated', { name, avatar: data.avatar });
+                        editProfileForm.style.display = 'none';
+                        alert('Perfil actualizado.');
+                    } else {
+                        alert('Error al actualizar el perfil: ' + data.message);
+                    }
+                });
+            });
+
+            // Manejar eliminación de videos
+            profileVideosContainer.addEventListener('click', function(e) {
+                if (e.target.classList.contains('delete-btn')) {
+                    const videoId = parseInt(e.target.dataset.id);
+                    if (confirm('¿Estás seguro de que deseas eliminar este video?')) {
+                        fetch(`/api/delete-video/${videoId}`, {
+                            method: 'DELETE',
+                            credentials: 'include'
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                socket.emit('video_deleted', videoId);
+                            } else {
+                                alert('Error al eliminar el video: ' + data.message);
+                            }
+                        });
+                    }
+                }
+            });
+
+            // Cerrar sesión
+            logoutBtn.addEventListener('click', function() {
+                fetch('/api/logout', { method: 'POST', credentials: 'include' })
+                    .then(() => {
+                        window.location.href = '/auth.html';
+                    });
+            });
+        });
+    </script>
+</body>
+</html>
