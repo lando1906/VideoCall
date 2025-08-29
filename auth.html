@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RedHub - Autenticación</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gray: #4a4a4a;
+            --dark-gray: #333333;
+            --light-gray: #666666;
+            --background: #1a1a1a;
+            --card-bg: #2c2c2c;
+            --text-dark: #d0d0d0;
+            --text-light: #888888;
+            --border-radius: 6px;
+            --shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .auth-container {
+            background-color: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .auth-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .auth-title {
+            font-size: 1.2rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .auth-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--text-light);
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .toggle-btn:hover {
+            color: var(--text-dark);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-weight: 400;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid #444;
+            border-radius: var(--border-radius);
+            background-color: #333;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+        }
+
+        .submit-btn {
+            background-color: var(--primary-gray);
+            color: white;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 400;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.9rem;
+        }
+
+        .submit-btn:hover {
+            background-color: var(--dark-gray);
+        }
+
+        .submit-btn-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .error-message {
+            color: #ff5555;
+            font-size: 0.8rem;
+            margin-top: 0.4rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-header">
+            <h3 class="auth-title" id="auth-title">
+                <svg class="auth-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 12C14.2091 12 16 10.2091 16 8C16 5.79086 14.2091 4 12 4C9.79086 4 8 5.79086 8 8C8 10.2091 9.79086 12 12 12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M20 20C20 18.3431 16.4183 17 12 17C7.58172 17 4 18.3431 4 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Iniciar Sesión
+            </h3>
+            <button class="toggle-btn" id="toggle-auth">Registrarse</button>
+        </div>
+        <form id="auth-form">
+            <div class="form-group">
+                <label for="email">Correo Electrónico</label>
+                <input type="email" id="email" required placeholder="tu@correo.com">
+            </div>
+            <div class="form-group">
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" required placeholder="Contraseña">
+            </div>
+            <div class="form-group" id="name-group" style="display: none;">
+                <label for="name">Nombre de usuario</label>
+                <input type="text" id="name" placeholder="Tu nombre">
+            </div>
+            <p class="error-message" id="error-message"></p>
+            <button type="submit" class="submit-btn">
+                <svg class="submit-btn-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9M16 17L21 12M21 12L16 7M21 12H9" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span id="submit-text">Iniciar Sesión</span>
+            </button>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const authForm = document.getElementById('auth-form');
+            const toggleAuth = document.getElementById('toggle-auth');
+            const authTitle = document.getElementById('auth-title');
+            const submitText = document.getElementById('submit-text');
+            const nameGroup = document.getElementById('name-group');
+            const errorMessage = document.getElementById('error-message');
+            let isLogin = true;
+
+            toggleAuth.addEventListener('click', function() {
+                isLogin = !isLogin;
+                authTitle.textContent = isLogin ? 'Iniciar Sesión' : 'Registrarse';
+                submitText.textContent = isLogin ? 'Iniciar Sesión' : 'Registrarse';
+                toggleAuth.textContent = isLogin ? 'Registrarse' : 'Iniciar Sesión';
+                nameGroup.style.display = isLogin ? 'none' : 'block';
+                errorMessage.style.display = 'none';
+            });
+
+            authForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const name = document.getElementById('name').value;
+
+                const url = isLogin ? '/api/login' : '/api/register';
+                const data = isLogin ? { email, password } : { email, password, name };
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                    credentials: 'include'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '/';
+                    } else {
+                        errorMessage.textContent = data.message;
+                        errorMessage.style.display = 'block';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
