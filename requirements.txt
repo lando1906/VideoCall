@@ -10,3 +10,6 @@ Flask-SQLAlchemy
 python-dotenv
 psycopg2-binary
 eventlet
+Flask-CORS
+bcrypt
+ffmpeg-python
